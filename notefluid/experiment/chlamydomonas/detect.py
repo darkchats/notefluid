@@ -208,7 +208,6 @@ video = VideoProcess(path, dir_name, config)
 video.run()
 video.load()
 root.setLevel(logging.DEBUG)
-
 print(video.ellipse_path)
 # video.process_pic(video.get_frame(467), debug=True)
 # cv2.waitKey()
