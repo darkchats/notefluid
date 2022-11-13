@@ -72,12 +72,18 @@ class VideoProcess:
 
     def process_pic(self, img, data_json=None, track_pre=None, debug=False):
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)  # 转为灰度值图
-        # THRESH_OTSU,THRESH_TRIANGLE
+        # THRESH_OTSU, THRESH_TRIANGLE
         ret, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_TRIANGLE)  # 转为二值图
         # ret, binary = cv2.threshold(gray, img.max() * 0.92, 255, cv2.THRESH_BINARY)  # 转为二值图
         contours, hierarchy = cv2.findContours(binary, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)  # 寻找轮廓
         if debug:
             cv2.imshow("binary", binary)
+
+        kernel = np.ones((2, 2), np.int8)
+        binary = cv2.dilate(binary, kernel, iterations=1)
+        if debug:
+            cv2.imshow("dilate", binary)
+
         result = data_json or {}
 
         circle_pre, ellipse_pre = None, None
@@ -164,7 +170,7 @@ class VideoProcess:
             for data in tqdm(datas):
                 if debug:
                     print(data['frame'], data.keys())
-                self.pic_show(data)
+                # self.pic_show(data)
             # self.pic_show(datas[31])
 
     def load(self):
@@ -191,25 +197,26 @@ class VideoProcess:
         else:
             self.load()
         if self.config.valid:
-            self.valid()
+            self.valid(True)
 
 
 root.setLevel(logging.WARN)
 logging.basicConfig()
 
 path_root = '/Users/chen/data/experiment/'
-path = f"{path_root}/11.5-01003.avi"
+path = f"{path_root}/11-5-01003.avi"
 
 dir_name = f'{path_root}/output'
 
 config = Config(split=False,
-                progress=True,
-                valid=False)
+                progress=False,
+                valid=True)
+
 video = VideoProcess(path, dir_name, config)
 video.run()
 video.load()
 root.setLevel(logging.DEBUG)
 print(video.ellipse_path)
-# video.process_pic(video.get_frame(467), debug=True)
-# cv2.waitKey()
-# cv2.destroyAllWindows()
+video.process_pic(video.get_frame(1356), debug=True)
+cv2.waitKey()
+cv2.destroyAllWindows()
