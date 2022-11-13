@@ -199,6 +199,7 @@ logging.basicConfig()
 
 path_root = '/Users/chen/data/experiment/'
 path = f"{path_root}/11.5-01003.avi"
+
 dir_name = f'{path_root}/output'
 
 config = Config(split=False,
