@@ -1,4 +1,3 @@
-import sys
 from os import path
 
 from notebuild.tool import read_version
@@ -8,7 +7,7 @@ version_path = path.join(path.abspath(path.dirname(__file__)), 'script/__version
 
 version = read_version(version_path)
 
-install_requires = ['notefluid', 'numpy', 'scipy']
+install_requires = ['numpy', 'scipy']
 
 setup(name='notefluid',
       version=version,
