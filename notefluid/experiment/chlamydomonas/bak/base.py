@@ -3,7 +3,7 @@ import os
 import cv2
 from tqdm import tqdm
 
-from notefluid.experiment.chlamydomonas.config import DetectConfig
+from notefluid.experiment.chlamydomonas.bak.config import DetectConfig
 
 
 class BaseDetect:

@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-from notefluid.experiment.chlamydomonas.fit import FitCircle, FitEllipse, FitBase
+from notefluid.experiment.chlamydomonas.bak.fit import FitCircle, FitEllipse, FitBase
 
 
 class Config:
@@ -208,9 +208,7 @@ path = f"{path_root}/11-5-01003.avi"
 
 dir_name = f'{path_root}/output'
 
-config = Config(split=False,
-                progress=False,
-                valid=True)
+config = Config(split=False, progress=False, valid=True)
 
 video = VideoProcess(path, dir_name, config)
 video.run()
