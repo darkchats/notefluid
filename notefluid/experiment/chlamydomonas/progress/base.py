@@ -88,6 +88,9 @@ class BaseProgress:
     def process_background_video(self, overwrite=False, debug=False, *args, **kwargs):
         pass
 
+    def process_contain_video(self, overwrite=False, debug=False, *args, **kwargs):
+        pass
+
     def process_particle_video(self, overwrite=False, debug=False, *args, **kwargs):
         pass
 

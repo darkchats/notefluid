@@ -4,31 +4,34 @@ from typing import List
 
 import cv2
 import numpy as np
+import pandas as pd
 from tqdm import tqdm
 
-from notefluid.experiment.chlamydomonas.progress.base import BaseProgress
+from notefluid.experiment.chlamydomonas.progress.background import BackGroundList
 from notefluid.utils.log import logger
 
 
 def fit_contain(contour):
     # length = round(cv2.arcLength(contour, True), 2)  # 获取轮廓长度
 
-    if len(contour) < 5000:
+    if len(contour) < 100:
         logger.debug(f"size: {len(contour)}<10")
         return None, None
     area = round(cv2.contourArea(contour), 2)  # 获取轮廓面积
     if area < 100000:
         logger.debug(f"area: {area} < 100000")
         return None, None
-    elif area > 1000000:
+    elif area > 985000:
         logger.debug(f"area: {area} > 1000000")
         return None, None
 
     # (x,y) 代表椭圆中心点的位置, radius 代表半径
     center, radius = cv2.minEnclosingCircle(contour)
+    # if radius > 600:
+    #     return None, None
     data = np.subtract(np.reshape(contour, [contour.shape[0], 2]), np.array([center]))
     score1 = 1 - round(np.abs((np.linalg.norm(data, axis=1) - radius).mean()) / radius, 4)
-    if score1 < 0.8:
+    if score1 < 0.6:
         return None, None
     score2 = 1 - abs(radius * radius * np.pi / area - 1)
     if score2 < 0.8:
@@ -65,58 +68,69 @@ class BackContain:
             return False
         return True
 
+    def to_json(self):
+        return {
+            "centerX": self.center[0],
+            "centerY": self.center[1],
+            "radius": self.radius,
+        }
 
-class BackContainList(BaseProgress):
+
+class BackContainList(BackGroundList):
     def __init__(self, *args, **kwargs):
         super(BackContainList, self).__init__(*args, **kwargs)
         self.backcontain_path = f'{self.cache_dir}/backcontain.pkl'
+        self.backcontain_csv_path = f'{self.cache_dir}/backcontain.csv'
         self.backcontain_list: List[BackContain] = []
 
-    def add_image(self, image) -> List[BackContain]:
+    def process_contain_image(self, image, step, ext_json, debug=False) -> List[BackContain]:
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)  # 转为灰度值图
-        ret, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_OTSU)  # 转为二值图
+        ret, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_TRIANGLE)  # 转为二值图
         contours, hierarchy = cv2.findContours(binary, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)  # 寻找轮廓
-        contains = []
+
+        result_contain = None
         for i, contour in enumerate(contours):
             center, radius = fit_contain(contour)
             if center is not None:
-                for contain in self.backcontain_list[::-1]:
-                    if contain.valid(center, radius):
-                        contain.add(center, radius)
-                        contains.append(contain)
-                        break
+                if debug:
+                    cv2.circle(image, (int(center[0]), int(center[1])), int(radius), (0, 255, 0), 2)
+                    cv2.circle(binary, (int(center[0]), int(center[1])), int(radius), (0, 255, 0), 2)
+
                 contain = BackContain()
                 contain.add(center, radius)
-                self.backcontain_list.append(contain)
-                contains.append(contain)
-                logger.info("add a newer")
-        return contains
+                if result_contain is None or contain.radius < result_contain.radius:
+                    result_contain = contain
 
-    def process(self, overwrite=False, *args, **kwargs):
-        super(BackContainList, self).process(overwrite=overwrite, *args, **kwargs)
-        if self.load(overwrite=overwrite, *args, **kwargs):
+        if debug and result_contain is None:
+            cv2.imshow(f"{os.path.basename(self.video_path)}-binary", binary)
+            cv2.imshow(f"{os.path.basename(self.video_path)}-image", image)
+            cv2.waitKey()
+        return [result_contain] if result_contain is not None else []
+
+    def process_contain_video(self, overwrite=False, debug=False, *args, **kwargs):
+        super(BackContainList, self).process(overwrite=False, *args, **kwargs)
+        if self.load_contain(overwrite=overwrite, *args, **kwargs):
             return
-        camera = cv2.VideoCapture(self.video_path)
-        frame_counter = int(camera.get(cv2.CAP_PROP_FRAME_COUNT))
-        pbar = tqdm(range(frame_counter))
 
-        filename = os.path.basename(self.video_path)
-        for step in pbar:
-            res, image = camera.read()
-            if not res:
-                break
-            self.add_image(image)
-            pbar.set_description(f"backcontain-{filename}-{len(self.backcontain_list)}")
-        camera.release()
+        pbar = tqdm(enumerate(self.background_list))
 
-    def save(self, overwrite=False, *args, **kwargs):
+        for step, background in pbar:
+            image = background.back_image
+            contains = self.process_contain_image(image, 0, None, debug=debug)
+            self.backcontain_list.extend(contains)
+        self.save_contain(overwrite=overwrite)
+
+    def save_contain(self, overwrite=False, *args, **kwargs):
         super(BackContainList, self).save(overwrite=overwrite, *args, **kwargs)
         if not overwrite and os.path.exists(self.backcontain_path):
             return False
         with open(self.backcontain_path, 'wb') as fw:
             pickle.dump(self.backcontain_list, fw)
+        data = [par.to_json() for par in self.backcontain_list]
+        df = pd.DataFrame(data)
+        df.to_csv(self.backcontain_csv_path, index=None)
 
-    def load(self, overwrite=False, *args, **kwargs):
+    def load_contain(self, overwrite=False, *args, **kwargs):
         super(BackContainList, self).load(overwrite=overwrite, *args, **kwargs)
         if overwrite or not os.path.exists(self.backcontain_path):
             return False

@@ -6,7 +6,7 @@ import cv2
 import numpy as np
 import pandas as pd
 
-from notefluid.experiment.chlamydomonas.progress.background import BackGroundList
+from notefluid.experiment.chlamydomonas.progress.contain import BackContainList
 from notefluid.utils.log import logger
 
 
@@ -29,6 +29,8 @@ def fit_particle(contour):
     center, radius, angle = cv2.fitEllipse(contour)
     s1 = 1 - abs(radius[0] * radius[1] * np.pi / 4 / area - 1)
     if s1 < 0.3:
+        return None, None, None
+    if radius[0] / radius[1] > 2 or radius[0] / radius[1] < 0.5:
         return None, None, None
     return center, radius, angle
 
@@ -56,7 +58,7 @@ class Particle:
         }
 
 
-class ParticleWithoutBackgroundList(BackGroundList):
+class ParticleWithoutBackgroundList(BackContainList):
     def __init__(self, *args, **kwargs):
         super(ParticleWithoutBackgroundList, self).__init__(*args, **kwargs)
         self.particle_path = f'{self.cache_dir}/particle_without_list.pkl'

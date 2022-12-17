@@ -1,7 +1,6 @@
+import json
 import logging
 import os
-
-import cv2
 
 from notefluid.experiment.chlamydomonas.progress.particle import ParticleWithoutBackgroundList
 from notefluid.utils.log import logger
@@ -15,43 +14,41 @@ class Main:
         self.videos_dir = f'{self.path_root}/videos'
         self.results_dir = f'{self.path_root}/results'
 
-    def run_video(self, video_path):
+        self.results_json = f'{self.path_root}/result.json'
+
+    def run_video(self, video_path, ext_json={}) -> dict:
         if not video_path.endswith('.avi'):
-            return
+            return {}
         cache_dir = os.path.dirname(video_path.replace(self.videos_dir, self.results_dir))
         if not os.path.exists(cache_dir):
             os.makedirs(cache_dir)
 
-        # back_ground = BackGroundList(path)
-        # back_ground.process()
-        # back_ground.save()
-
-        # back_contain = BackContainList(path)
-        # back_contain.process()
-        # back_contain.save()
-
-        # particle_detect = ParticleList(path)
-        # particle_detect.process(overwrite=True, debug=True)
-        # particle_detect.save(overwrite=True)
-
         particle_detect = ParticleWithoutBackgroundList(video_path, cache_dir=cache_dir)
 
         particle_detect.process_background_video()
-
-        particle_detect.process_particle_video(debug=False)
+        particle_detect.process_contain_video(overwrite=True)
+        particle_detect.process_particle_video(debug=True)
+        ext_json.update({
+            "particles": len(particle_detect.particle_list),
+            "background_size": len(particle_detect.background_list),
+            "backcontain_size": len(particle_detect.backcontain_list),
+        })
+        return ext_json
 
     def run(self):
+        result = []
         for root, directories, files in os.walk(self.videos_dir):
             if root.endswith('useless'):
                 continue
+
             for file in files:
-                if file in ('11.23005.avi', '11.23006.avi'):
-                    # continue
-                    pass
-                self.run_video(os.path.join(root, file))
+                ext = {
+                    "file": file,
+                }
+                result.append(self.run_video(os.path.join(root, file), ext_json=ext))
+        with open(self.results_json, 'w') as fr:
+            fr.write(json.dumps(result))
         logger.info("all is done")
-        cv2.waitKey()
-        cv2.destroyAllWindows()
 
 
 Main(path_root='/Volumes/ChenDisk/experiment').run()
