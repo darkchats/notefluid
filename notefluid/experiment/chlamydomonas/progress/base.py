@@ -24,8 +24,7 @@ class VideoConfig:
             self.end_second = data['endSecond']
 
     def print(self):
-        logging.info(f"config-startSecond:{self.start_second}")
-        logging.info(f"config-startSecond:{self.end_second}")
+        logging.info(f"config-second:{self.start_second}->{self.end_second}")
 
 
 class BaseProgress:
@@ -44,6 +43,7 @@ class BaseProgress:
 
         self.video_width = 0
         self.video_height = 0
+        self.frame_count = 0
         self.basepath = f"{self.cache_dir}/base.pkl"
         if not os.path.exists(self.cache_dir):
             os.makedirs(self.cache_dir)
@@ -85,6 +85,13 @@ class BaseProgress:
         self.video_height = int(camera.get(cv2.CAP_PROP_FRAME_HEIGHT))
         camera.release()
 
+        def fun(step, image, ext_json):
+            self.frame_count = step
+            return self.frame_count
+
+        self.process_wrap(fun)
+        self.save(overwrite=overwrite)
+
     def process_background_video(self, overwrite=False, debug=False, *args, **kwargs):
         pass
 
@@ -100,6 +107,7 @@ class BaseProgress:
         with open(self.basepath, 'wb') as fw:
             pickle.dump(self.video_width, fw)
             pickle.dump(self.video_height, fw)
+            pickle.dump(self.frame_count, fw)
         return True
 
     def load(self, overwrite=False, *args, **kwargs):
@@ -108,4 +116,5 @@ class BaseProgress:
         with open(self.basepath, 'rb') as fr:
             self.video_width = pickle.load(fr)
             self.video_height = pickle.load(fr)
+            self.frame_count = pickle.load(fr)
         return True

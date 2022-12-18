@@ -18,7 +18,7 @@ def fit_contain(contour):
         logger.debug(f"size: {len(contour)}<10")
         return None, None
     area = round(cv2.contourArea(contour), 2)  # 获取轮廓面积
-    if area < 100000:
+    if area < 10000:
         logger.debug(f"area: {area} < 100000")
         return None, None
     elif area > 985000:
@@ -33,8 +33,8 @@ def fit_contain(contour):
     score1 = 1 - round(np.abs((np.linalg.norm(data, axis=1) - radius).mean()) / radius, 4)
     if score1 < 0.6:
         return None, None
-    score2 = 1 - abs(radius * radius * np.pi / area - 1)
-    if score2 < 0.8:
+    area2 = radius * radius * np.pi
+    if area2 < area * 0.8:
         return None, None
     return np.array(center), radius
 
@@ -101,7 +101,7 @@ class BackContainList(BackGroundList):
                 if result_contain is None or contain.radius < result_contain.radius:
                     result_contain = contain
 
-        if debug and result_contain is None:
+        if debug and result_contain is not None:
             cv2.imshow(f"{os.path.basename(self.video_path)}-binary", binary)
             cv2.imshow(f"{os.path.basename(self.video_path)}-image", image)
             cv2.waitKey()
