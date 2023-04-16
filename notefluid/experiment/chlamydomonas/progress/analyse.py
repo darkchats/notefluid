@@ -59,7 +59,7 @@ class AnalyseParticle(ParticleWithoutBackgroundList):
                 result.append(line)
                 continue
             dis = cul_dis(line['centerX'], line['centerY'], pre_line['centerX'], pre_line['centerY'])
-            if dis < 1000:
+            if dis < 100:
                 pre_line = line
                 result.append(line)
 

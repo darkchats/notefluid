@@ -28,7 +28,7 @@ class Main:
         particle_detect.process()
         particle_detect.process_background_video()
         particle_detect.process_contain_video()
-        particle_detect.process_particle_video()
+        particle_detect.process_particle_video(debug=True)
         particle_detect.analyse_track(overwrite=True)
         ext_json.update({
             "video_height": particle_detect.video_height,
@@ -54,7 +54,7 @@ class Main:
                 ext = {
                     "file": file,
                 }
-                if file not in ('11.23005.avi', '11.23006.avi'):
+                if file not in ('11.23005.avi', '11.23006.avi', '150_11-3-01015', '150_11-3-01003'):
                     # continue
                     pass
                 result.append(self.run_video(os.path.join(root, file), ext_json=ext))
