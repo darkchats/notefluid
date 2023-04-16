@@ -3,7 +3,9 @@ import math
 import os
 
 import pandas as pd
+from tqdm import tqdm
 
+from notefluid.common.base.cache import CSVCache
 from notefluid.experiment.chlamydomonas.progress.particle import ParticleWithoutBackgroundList
 
 
@@ -65,3 +67,57 @@ class AnalyseParticle(ParticleWithoutBackgroundList):
 
         self.particle_track = pd.DataFrame(result)
         self.save_analyse(overwrite=overwrite)
+
+
+class MSDCalculate(CSVCache):
+    def __init__(self, *args, **kwargs):
+        super(MSDCalculate, self).__init__(*args, **kwargs)
+
+    def execute(self, df, *args, **kwargs):
+        msd_result = []
+        for i in tqdm(range(1, len(df))):
+            df['x1'] = df['centerX'].diff(i)
+            df['y1'] = df['centerY'].diff(i)
+            df['T'] = df['x1'] ** 2 + df['y1'] ** 2
+            msd_result.append([i * 0.06, df['T'].mean()])
+        msd_df = pd.DataFrame(msd_result)
+        msd_df.columns = ['t', 'msd']
+        return msd_df
+
+
+class TrackAnalyse(CSVCache):
+    def __init__(self, *args, **kwargs):
+        super(TrackAnalyse, self).__init__(*args, **kwargs)
+
+    def execute(self, contains, particles, debug=False, *args, **kwargs):
+        cx, cy, r = contains.values[0]
+
+        def cul_dis(x, y, _x, _y):
+            return math.sqrt((x - _x) * (x - _x) + (y - _y) * (y - _y))
+
+        def cul_par_dis(row):
+            x, y = row['centerX'], row['centerX']
+            # cx, cy
+            index = int(row['background_uid'] - 1)
+            if index > len(contains):
+                index = 0
+            _cx, _cy, _cr = contains.values[index]
+            return cul_dis(x, y, _cx, _cy)
+
+        # 过滤容器外部的颗粒
+        particles['dis'] = particles.apply(lambda x: cul_par_dis(x), axis=1)
+        particles = particles[particles['dis'] <= r * 1.02]
+
+        # 过滤跳跃式颗粒
+        pre_line = None
+        result = []
+        for line in json.loads(particles.to_json(orient='records')):
+            if pre_line is None:
+                pre_line = line
+                result.append(line)
+                continue
+            dis = cul_dis(line['centerX'], line['centerY'], pre_line['centerX'], pre_line['centerY'])
+            if dis < 100:
+                pre_line = line
+                result.append(line)
+        return pd.DataFrame(result)
