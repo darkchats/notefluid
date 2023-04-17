@@ -3,65 +3,85 @@ import logging
 import os
 
 from notefluid.experiment.chlamydomonas.progress.analyse import AnalyseParticle
+from notefluid.experiment.chlamydomonas.progress.background import BackGroundList
+from notefluid.experiment.chlamydomonas.progress.base import VideoBase
+from notefluid.experiment.chlamydomonas.progress.config import Config
+from notefluid.experiment.chlamydomonas.progress.contain import BackContainList
+from notefluid.experiment.chlamydomonas.progress.particle import ParticleWithoutBackgroundList
 from notefluid.utils.log import logger
 
 logger.setLevel(logging.INFO)
 
 
-class Main:
-    def __init__(self, path_root):
-        self.path_root = path_root
-        self.videos_dir = f'{self.path_root}/videos'
-        self.results_dir = f'{self.path_root}/results'
+class VideoProgress:
+    def __init__(self, video_path, cache_dir):
+        self.base_video = VideoBase(video_path, cache_dir=cache_dir)
+        self.background = BackGroundList(config=self.base_video)
+        self.particle = ParticleWithoutBackgroundList(background=self.background)
+        self.contain = BackContainList(background=self.background)
+        self.particle_detect = AnalyseParticle(config=self.base_video, contain=self.contain, particle=self.particle)
 
-        self.results_json = f'{self.path_root}/result.json'
+    def execute(self, ext_json=None):
+        ext_json = ext_json or {}
+        self.base_video.read()
+        self.background.read()
+        self.background.read()
+        self.particle.read()
 
-    def run_video(self, video_path, ext_json={}) -> dict:
-        if not video_path.endswith('.avi'):
-            return ext_json
-        cache_dir = os.path.dirname(video_path.replace(self.videos_dir, self.results_dir))
-        if not os.path.exists(cache_dir):
-            os.makedirs(cache_dir)
-
-        particle_detect = AnalyseParticle(video_path, cache_dir=cache_dir)
-
-        particle_detect.process()
-        particle_detect.process_background_video()
-        particle_detect.process_contain_video()
-        particle_detect.process_particle_video(debug=True)
-        particle_detect.analyse_track(overwrite=True)
-        ext_json.update({
-            "video_height": particle_detect.video_height,
-            "video_width": particle_detect.video_width,
-            "frame_count": particle_detect.frame_count,
-            "particles": len(particle_detect.particle_list),
-            "tracks": len(particle_detect.particle_track),
-            "background_size": len(particle_detect.background_list),
-            "backcontain_size": len(particle_detect.backcontain_list),
-            "track_path": particle_detect.particle_track_path
-        })
+        self.particle_detect.analyse_track(overwrite=False)
+        self.particle_detect.analyse_msd(overwrite=False)
+        try:
+            ext_json.update({
+                "video_path": self.base_video.video_path,
+                "cache_dir": self.base_video.cache_dir,
+                "video_height": self.base_video.video_height,
+                "video_width": self.base_video.video_width,
+                "frame_count": self.base_video.frame_count,
+                "particles": len(self.particle.particle_list),
+                "tracks": len(self.particle_detect.particle_track),
+                "background_size": len(self.background.background_list),
+                "backcontain_size": len(self.contain.contain_list),
+                "track_path": self.particle_detect.particle_track_path,
+                "msd_path": self.particle_detect.particle_track_msd_path
+            })
+        except Exception as e:
+            print(f"main_error {self.base_video.video_path}")
         return ext_json
+
+
+class Main:
+    def __init__(self, config):
+        self.config = config
 
     def run(self):
         result = []
-        for root, directories, files in os.walk(self.videos_dir):
+        for root, directories, files in os.walk(self.config.videos_dir):
             if root.endswith('useless'):
                 continue
 
             for file in files:
                 if not file.endswith('.avi'):
                     continue
-                ext = {
+                ext_json = {
                     "file": file,
                 }
                 if file not in ('11.23005.avi', '11.23006.avi', '150_11-3-01015', '150_11-3-01003'):
                     # continue
                     pass
-                result.append(self.run_video(os.path.join(root, file), ext_json=ext))
-        with open(self.results_json, 'w') as fr:
+
+                video_path = os.path.join(root, file)
+                if not video_path.endswith('.avi'):
+                    continue
+
+                cache_dir = os.path.dirname(video_path.replace(self.config.videos_dir, self.config.results_dir))
+                video_progress = VideoProgress(video_path=video_path, cache_dir=cache_dir)
+                result.append(video_progress.execute(ext_json=ext_json))
+
+        with open(self.config.results_json, 'w') as fr:
             fr.write(json.dumps(result))
         logger.info("all is done")
 
 
-Main(path_root='/Volumes/ChenDisk/experiment').run()
+config = Config(path_root='/Volumes/ChenDisk/experiment')
+Main(config).run()
 # Main(path_root='/Users/chen/data/experiment').run()

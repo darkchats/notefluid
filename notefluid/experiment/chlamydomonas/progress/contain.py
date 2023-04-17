@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
+from notefluid.common.base.cache import BaseCache
 from notefluid.experiment.chlamydomonas.progress.background import BackGroundList
 from notefluid.utils.log import logger
 
@@ -76,12 +77,14 @@ class BackContain:
         }
 
 
-class BackContainList(BackGroundList):
-    def __init__(self, *args, **kwargs):
+class BackContainList(BaseCache):
+    def __init__(self, background: BackGroundList, *args, **kwargs):
         super(BackContainList, self).__init__(*args, **kwargs)
-        self.backcontain_path = f'{self.cache_dir}/backcontain.pkl'
-        self.backcontain_csv_path = f'{self.cache_dir}/backcontain.csv'
-        self.backcontain_list: List[BackContain] = []
+        self.config = background.config
+        self.background = background
+        self.backcontain_path = f'{self.config.cache_dir}/backcontain.pkl'
+        self.backcontain_csv_path = f'{self.config.cache_dir}/backcontain.csv'
+        self.contain_list: List[BackContain] = []
 
     def process_contain_image(self, image, step, ext_json, debug=False) -> List[BackContain]:
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)  # 转为灰度值图
@@ -102,38 +105,29 @@ class BackContainList(BackGroundList):
                     result_contain = contain
 
         if debug and result_contain is not None:
-            cv2.imshow(f"{os.path.basename(self.video_path)}-binary", binary)
-            cv2.imshow(f"{os.path.basename(self.video_path)}-image", image)
+            cv2.imshow(f"{os.path.basename(self.config.video_path)}-binary", binary)
+            cv2.imshow(f"{os.path.basename(self.config.video_path)}-image", image)
             cv2.waitKey()
         return [result_contain] if result_contain is not None else []
 
-    def process_contain_video(self, overwrite=False, debug=False, *args, **kwargs):
-        super(BackContainList, self).process(overwrite=False, *args, **kwargs)
-        if self.load_contain(overwrite=overwrite, *args, **kwargs):
-            return
-
-        pbar = tqdm(enumerate(self.background_list))
-
+    def _execute(self, overwrite=False, debug=False, *args, **kwargs):
+        pbar = tqdm(enumerate(self.background.background_list))
         for step, background in pbar:
             image = background.back_image
             contains = self.process_contain_image(image, 0, None, debug=debug)
-            self.backcontain_list.extend(contains)
-        self.save_contain(overwrite=overwrite)
+            self.contain_list.extend(contains)
 
-    def save_contain(self, overwrite=False, *args, **kwargs):
-        super(BackContainList, self).save(overwrite=overwrite, *args, **kwargs)
-        if not overwrite and os.path.exists(self.backcontain_path):
-            return False
+    @property
+    def contain_df(self):
+        return pd.DataFrame([par.to_json() for par in self.contain_list])
+
+    def _write(self, *args, **kwargs):
         with open(self.backcontain_path, 'wb') as fw:
-            pickle.dump(self.backcontain_list, fw)
-        data = [par.to_json() for par in self.backcontain_list]
-        df = pd.DataFrame(data)
+            pickle.dump(self.contain_list, fw)
+        df = self.contain_df
         df.to_csv(self.backcontain_csv_path, index=None)
 
-    def load_contain(self, overwrite=False, *args, **kwargs):
-        super(BackContainList, self).load(overwrite=overwrite, *args, **kwargs)
-        if overwrite or not os.path.exists(self.backcontain_path):
-            return False
+    def _read(self, *args, **kwargs):
         with open(self.backcontain_path, 'rb') as fr:
-            self.backcontain_list = pickle.load(fr)
+            self.contain_list = pickle.load(fr)
         return True

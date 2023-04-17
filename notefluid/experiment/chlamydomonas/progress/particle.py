@@ -6,7 +6,9 @@ import cv2
 import numpy as np
 import pandas as pd
 
-from notefluid.experiment.chlamydomonas.progress.contain import BackContainList
+from notefluid.common.base.cache import CSVDataFrameCache, PickleDataFrameCache, BaseCache
+from notefluid.experiment.chlamydomonas.progress.background import BackGroundList
+from notefluid.experiment.chlamydomonas.progress.base import process_wrap
 from notefluid.utils.log import logger
 
 
@@ -58,16 +60,25 @@ class Particle:
         }
 
 
-class ParticleWithoutBackgroundList(BackContainList):
+class ParticleCalculate(CSVDataFrameCache, PickleDataFrameCache):
     def __init__(self, *args, **kwargs):
-        super(ParticleWithoutBackgroundList, self).__init__(*args, **kwargs)
-        self.particle_path = f'{self.cache_dir}/particle_without_list.pkl'
-        self.particle_csv_path = f'{self.cache_dir}/particle_without_list.csv'
+        super(ParticleCalculate, self).__init__(*args, **kwargs)
+
+
+class ParticleWithoutBackgroundList(BaseCache):
+    def __init__(self, background: BackGroundList, *args, **kwargs):
+        self.config = background.config
+        super(ParticleWithoutBackgroundList, self).__init__(
+            filepath=f'{self.config.cache_dir}/particle_without_list.pkl', *args, **kwargs)
+
+        self.background = background
+        self.particle_csv_path = f'{self.config.cache_dir}/particle_without_list.csv'
         self.particle_list: List[Particle] = []
 
     def process_particle_image(self, image, step, ext_json) -> List[Particle]:
-        back_image = self.process_background_nearest(image)
+        back_image = self.background.process_background_nearest(image)
         ext_json['background_uid'] = back_image.uid
+
         image = np.abs(back_image.back_image.astype(np.int) - image.astype(np.int))
         image = image.astype(np.uint8)
 
@@ -87,39 +98,26 @@ class ParticleWithoutBackgroundList(BackContainList):
                 particles.append(particle)
         return particles
 
-    def process_particle_video(self, overwrite=False, debug=False, *args, **kwargs):
-        super(ParticleWithoutBackgroundList, self).process(overwrite=False, *args, **kwargs)
-        if self.load_particle(overwrite=overwrite, *args, **kwargs):
-            return
-
+    def _execute(self, debug=False, *args, **kwargs):
         def fun(step, image, ext_json):
             particles = self.process_particle_image(image, step, ext_json)
             if debug:
                 for particle in particles:
                     cv2.ellipse(image, (particle.center, particle.radius, particle.angle), (0, 255, 0), 2)
-                cv2.imshow(f'{os.path.basename(self.video_path)}', image)
-
+                cv2.imshow(f'{os.path.basename(self.config.video_path)}', image)
                 cv2.waitKey(delay=10)
-
             return len(self.particle_list)
 
-        self.process_wrap(fun, desc='particle')
-        self.save_particle(overwrite=overwrite)
+        process_wrap(fun, self.config, desc='particle')
 
-    def save_particle(self, overwrite=False, *args, **kwargs):
-        super(ParticleWithoutBackgroundList, self).save(overwrite=overwrite, *args, **kwargs)
-        if not overwrite and os.path.exists(self.particle_path) and len(self.particle_list) > 0:
-            return False
-        with open(self.particle_path, 'wb') as fw:
+    def _write(self, *args, **kwargs):
+        with open(self.filepath, 'wb') as fw:
             pickle.dump(self.particle_list, fw)
         data = [par.to_json() for par in self.particle_list]
         df = pd.DataFrame(data)
         df.to_csv(self.particle_csv_path, index=None)
 
-    def load_particle(self, overwrite=False, *args, **kwargs):
-        super(ParticleWithoutBackgroundList, self).load(overwrite=overwrite, *args, **kwargs)
-        if overwrite or not os.path.exists(self.particle_path):
-            return False
-        with open(self.particle_path, 'rb') as fr:
+    def _read(self, *args, **kwargs):
+        with open(self.filepath, 'rb') as fr:
             self.particle_list = pickle.load(fr)
         return True

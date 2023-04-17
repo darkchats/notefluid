@@ -1,10 +1,10 @@
-import os
 import pickle
 from typing import List
 
 import numpy as np
 
-from notefluid.experiment.chlamydomonas.progress.base import BaseProgress
+from notefluid.common.base.cache import BaseCache
+from notefluid.experiment.chlamydomonas.progress.base import process_wrap, VideoBase
 from notefluid.utils.log import logger
 
 
@@ -43,10 +43,10 @@ class BackGround:
         return f"{self.uid}    {self.count}    {self.back_image.shape}"
 
 
-class BackGroundList(BaseProgress):
-    def __init__(self, *args, **kwargs):
-        super(BackGroundList, self).__init__(*args, **kwargs)
-        self.background_path = f'{self.cache_dir}/background.pkl'
+class BackGroundList(BaseCache):
+    def __init__(self, config: VideoBase, *args, **kwargs):
+        super(BackGroundList, self).__init__(filepath=f'{config.cache_dir}/background.pkl', *args, **kwargs)
+        self.config = config
         self.background_list: List[BackGround] = []
 
     def process_background_nearest(self, image, debug=False, *args, **kwargs) -> BackGround:
@@ -64,37 +64,23 @@ class BackGroundList(BaseProgress):
             if back.valid(image):
                 back.add(image)
                 return back
-        back = BackGround(self.video_width, self.video_height, uid=step)
+        back = BackGround(self.config.video_width, self.config.video_height, uid=step)
         back.add(image)
         self.background_list.append(back)
         logger.debug("add a newer")
         return back
 
-    def process_background_video(self, overwrite=False, debug=False, *args, **kwargs):
-        super(BackGroundList, self).process(overwrite=overwrite, *args, **kwargs)
-        if self.load_background(overwrite=overwrite, *args, **kwargs):
-            return
-
+    def execute(self, *args, **kwargs):
         def fun(step, image, ext_json):
             self.process_background_image(step, image)
             return len(self.background_list)
 
-        self.process_wrap(fun, desc='background')
-        self.save_background(overwrite=overwrite)
+        process_wrap(fun, self.config, desc='background')
 
-    def save_background(self, overwrite=False, *args, **kwargs):
-        super(BackGroundList, self).save(overwrite=overwrite, *args, **kwargs)
-        if not overwrite and os.path.exists(self.background_path) and len(self.background_list) > 0:
-            return False
-        with open(self.background_path, 'wb') as fw:
-            pickle.dump(self.background_list, fw)
-
-    def load_background(self, overwrite=False, *args, **kwargs):
-        super(BackGroundList, self).load(overwrite=overwrite, *args, **kwargs)
-        if overwrite or not os.path.exists(self.background_path):
-            logger.info(f"overwrite or {self.background_path} not exists,return")
-            return False
-        with open(self.background_path, 'rb') as fr:
+    def _read(self, *args, **kwargs):
+        with open(self.filepath, 'rb') as fr:
             self.background_list = pickle.load(fr)
-            logger.info(f"load {self.background_path} success:{len(self.background_list)}")
-        return True
+
+    def _write(self, *args, **kwargs):
+        with open(self.filepath, 'wb') as fw:
+            pickle.dump(self.background_list, fw)
