@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 from notefluid.common.base.cache import BaseCache
 from notefluid.experiment.chlamydomonas.base.base import VideoBase
-from notefluid.experiment.chlamydomonas.detect.background import BackGroundDetect
+from notefluid.experiment.chlamydomonas.detect.background import BackGroundDetect, BackGround
 from notefluid.utils.log import logger
 
 
@@ -42,10 +42,11 @@ def fit_contain(contour):
 
 
 class BackContain:
-    def __init__(self):
+    def __init__(self, uid=0):
         self.center = np.array([0, 0])
         self.radius = 0
         self.count = 0
+        self.uid = uid
 
     def add(self, center, radius):
         if self.count == 0:
@@ -75,18 +76,19 @@ class BackContain:
             "centerX": self.center[0],
             "centerY": self.center[1],
             "radius": self.radius,
+            "uid": self.uid
         }
 
 
 class ContainDetect(BaseCache):
     def __init__(self, config: VideoBase, *args, **kwargs):
         self.config = config
-        super(ContainDetect, self).__init__(filepath=f'{self.config.cache_dir}/backcontain.pkl', *args, **kwargs)
-        self.backcontain_csv_path = f'{self.config.cache_dir}/backcontain.csv'
+        super(ContainDetect, self).__init__(filepath=f'{self.config.cache_dir}/detect_contains.pkl', *args, **kwargs)
+        self.backcontain_csv_path = f'{self.config.cache_dir}/detect_contains.csv'
         self.contain_list: List[BackContain] = []
 
-    def process_contain_image(self, image, step, ext_json, debug=False) -> List[BackContain]:
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)  # 转为灰度值图
+    def process_contain_image(self, background: BackGround, step, ext_json, debug=False) -> List[BackContain]:
+        gray = cv2.cvtColor(background.back_image, cv2.COLOR_BGR2GRAY)  # 转为灰度值图
         ret, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_TRIANGLE)  # 转为二值图
         contours, hierarchy = cv2.findContours(binary, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)  # 寻找轮廓
 
@@ -95,25 +97,23 @@ class ContainDetect(BaseCache):
             center, radius = fit_contain(contour)
             if center is not None:
                 if debug:
-                    cv2.circle(image, (int(center[0]), int(center[1])), int(radius), (0, 255, 0), 2)
+                    cv2.circle(background.back_image, (int(center[0]), int(center[1])), int(radius), (0, 255, 0), 2)
                     cv2.circle(binary, (int(center[0]), int(center[1])), int(radius), (0, 255, 0), 2)
 
-                contain = BackContain()
+                contain = BackContain(uid=background.uid)
                 contain.add(center, radius)
                 if result_contain is None or contain.radius < result_contain.radius:
                     result_contain = contain
 
         if debug and result_contain is not None:
             cv2.imshow(f"{os.path.basename(self.config.video_path)}-binary", binary)
-            cv2.imshow(f"{os.path.basename(self.config.video_path)}-image", image)
+            cv2.imshow(f"{os.path.basename(self.config.video_path)}-image", background.back_image)
             cv2.waitKey()
         return [result_contain] if result_contain is not None else []
 
-    def _execute(self, background: BackGroundDetect, overwrite=False, debug=False, *args, **kwargs):
-        pbar = tqdm(enumerate(background.background_list))
-        for step, background in pbar:
-            image = background.back_image
-            contains = self.process_contain_image(image, 0, None, debug=debug)
+    def _execute(self, backgrounds: BackGroundDetect, overwrite=False, debug=False, *args, **kwargs):
+        for step, background in tqdm(enumerate(backgrounds.background_list), desc='detect contain'):
+            contains = self.process_contain_image(background, 0, None, debug=debug)
             self.contain_list.extend(contains)
 
     @property
@@ -123,8 +123,7 @@ class ContainDetect(BaseCache):
     def _save(self, *args, **kwargs):
         with open(self.filepath, 'wb') as fw:
             pickle.dump(self.contain_list, fw)
-        df = self.contain_df
-        df.to_csv(self.backcontain_csv_path, index=None)
+        self.contain_df.to_csv(self.backcontain_csv_path, index=False)
 
     def _read(self, *args, **kwargs):
         with open(self.filepath, 'rb') as fr:

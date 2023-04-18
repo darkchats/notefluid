@@ -75,20 +75,13 @@ class VideoBase(BaseCache):
 
 def process_wrap(fun, config: VideoBase, desc='process'):
     camera = cv2.VideoCapture(config.video_path)
-    rate = camera.get(cv2.CAP_PROP_FPS)
-    frame_counter = int(camera.get(cv2.CAP_PROP_FRAME_COUNT))
-    desc = f'{os.path.basename(config.video_path)}-{desc}'
-    pbar = tqdm(range(int(frame_counter / rate * 1000)))
-    step = 0
-    while True:
-        step += 1
+    for step in tqdm(range(1, config.frame_count + 5), desc=desc):
         res, image = camera.read()
         if not res:
             break
         image = cv2.GaussianBlur(image, (3, 3), 1)
         millisecond = int(camera.get(cv2.CAP_OPENNI_DEPTH_MAP))
-        if millisecond > 0:
-            pbar.update(millisecond - pbar.n)
+
         if millisecond < config.start_second * 1000:
             continue
         elif millisecond > config.end_second * 1000:
@@ -96,33 +89,5 @@ def process_wrap(fun, config: VideoBase, desc='process'):
         ext_json = {
             'millisecond': millisecond
         }
-        msg = fun(step, image, ext_json)
-        pbar.set_description(f'{desc}-{msg}')
-
+        fun(step, image, ext_json)
     camera.release()
-    pbar.close()
-
-
-class BaseProgress:
-    def __init__(self, config: VideoBase):
-        self.config = config
-        self.config.load_config()
-
-    def process(self, overwrite=False, debug=False, *args, **kwargs):
-        self.config.read(overwrite=overwrite)
-        self.save(overwrite=overwrite)
-
-    def process_background_video(self, overwrite=False, debug=False, *args, **kwargs):
-        pass
-
-    def process_contain_video(self, overwrite=False, debug=False, *args, **kwargs):
-        pass
-
-    def process_particle_video(self, overwrite=False, debug=False, *args, **kwargs):
-        pass
-
-    def save(self, overwrite=False, *args, **kwargs):
-        return self.config.save(overwrite=overwrite)
-
-    def load(self, overwrite=False, *args, **kwargs):
-        return self.config.read(overwrite=overwrite)

@@ -1,13 +1,10 @@
-import json
 import logging
-import os
 
 from notefluid.experiment.chlamydomonas.analyse.analyse import TrackAnalyse, MSDCalculate
 from notefluid.experiment.chlamydomonas.base.base import VideoBase
-from notefluid.experiment.chlamydomonas.base.config import Config
 from notefluid.experiment.chlamydomonas.detect.background import BackGroundDetect
 from notefluid.experiment.chlamydomonas.detect.contain import ContainDetect
-from notefluid.experiment.chlamydomonas.detect.particle import ParticleWithoutBackgroundList
+from notefluid.experiment.chlamydomonas.detect.particle import ParticleDetect
 from notefluid.utils.log import logger
 
 logger.setLevel(logging.INFO)
@@ -17,7 +14,7 @@ class VideoProgress:
     def __init__(self, video_path, cache_dir):
         self.base_video = VideoBase(video_path, cache_dir=cache_dir)
         self.detect_background = BackGroundDetect(config=self.base_video)
-        self.detect_particle = ParticleWithoutBackgroundList(config=self.base_video)
+        self.detect_particle = ParticleDetect(config=self.base_video)
         self.detect_contain = ContainDetect(config=self.base_video)
 
         self.analyse_track = TrackAnalyse(config=self.base_video)
@@ -27,11 +24,11 @@ class VideoProgress:
         ext_json = ext_json or {}
         self.base_video.read()
         self.detect_background.read()
-        self.detect_background.read()
-        self.detect_particle.read()
+        self.detect_contain.read(backgrounds=self.detect_background)
+        self.detect_particle.read(backgrounds=self.detect_background, contains=self.detect_contain)
 
-        self.analyse_track.read(contain=self.detect_contain, particle=self.detect_particle)
-        self.analyse_msd.read()
+        self.analyse_track.read(contains=self.detect_contain, particles=self.detect_particle)
+        self.analyse_msd.read(track=self.analyse_track, contains=self.detect_contain)
         try:
             ext_json.update({
                 "video_path": self.base_video.video_path,
@@ -49,41 +46,3 @@ class VideoProgress:
         except Exception as e:
             print(f"main_error {self.base_video.video_path}")
         return ext_json
-
-
-class Main:
-    def __init__(self, config):
-        self.config = config
-
-    def run(self):
-        result = []
-        for root, directories, files in os.walk(self.config.videos_dir):
-            if root.endswith('useless'):
-                continue
-
-            for file in files:
-                if not file.endswith('.avi'):
-                    continue
-                ext_json = {
-                    "file": file,
-                }
-                if file not in ('11.23005.avi', '11.23006.avi', '150_11-3-01015', '150_11-3-01003'):
-                    # continue
-                    pass
-
-                video_path = os.path.join(root, file)
-                if not video_path.endswith('.avi'):
-                    continue
-
-                cache_dir = os.path.dirname(video_path.replace(self.config.videos_dir, self.config.results_dir))
-                video_progress = VideoProgress(video_path=video_path, cache_dir=cache_dir)
-                result.append(video_progress.execute(ext_json=ext_json))
-
-        with open(self.config.results_json, 'w') as fr:
-            fr.write(json.dumps(result))
-        logger.info("all is done")
-
-
-config = Config(path_root='/Volumes/ChenDisk/experiment')
-Main(config).run()
-# Main(path_root='/Users/chen/data/experiment').run()

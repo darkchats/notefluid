@@ -45,7 +45,7 @@ class BackGround:
 
 class BackGroundDetect(BaseCache):
     def __init__(self, config: VideoBase, *args, **kwargs):
-        super(BackGroundDetect, self).__init__(filepath=f'{config.cache_dir}/background.pkl', *args, **kwargs)
+        super(BackGroundDetect, self).__init__(filepath=f'{config.cache_dir}/detect_backgrounds.pkl', *args, **kwargs)
         self.config = config
         self.background_list: List[BackGround] = []
 
@@ -75,7 +75,7 @@ class BackGroundDetect(BaseCache):
             self.process_background_image(step, image)
             return len(self.background_list)
 
-        process_wrap(fun, self.config, desc='background')
+        process_wrap(fun, self.config, desc='detect background')
 
     def _read(self, *args, **kwargs):
         with open(self.filepath, 'rb') as fr:

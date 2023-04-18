@@ -9,6 +9,7 @@ import pandas as pd
 from notefluid.common.base.cache import BaseCache
 from notefluid.experiment.chlamydomonas.base.base import process_wrap, VideoBase
 from notefluid.experiment.chlamydomonas.detect.background import BackGroundDetect
+from notefluid.experiment.chlamydomonas.detect.contain import ContainDetect
 from notefluid.utils.log import logger
 
 
@@ -60,19 +61,28 @@ class Particle:
         }
 
 
-class ParticleWithoutBackgroundList(BaseCache):
+class ParticleDetect(BaseCache):
     def __init__(self, config: VideoBase, *args, **kwargs):
         self.config = config
-        super(ParticleWithoutBackgroundList, self).__init__(
-            filepath=f'{self.config.cache_dir}/particle_without_list.pkl', *args, **kwargs)
-        self.particle_csv_path = f'{self.config.cache_dir}/particle_without_list.csv'
+        super(ParticleDetect, self).__init__(
+            filepath=f'{self.config.cache_dir}/detect_particles.pkl', *args, **kwargs)
+        self.particle_csv_path = f'{self.config.cache_dir}/detect_particles.csv'
         self.particle_list: List[Particle] = []
 
-    def process_particle_image(self, background: BackGroundDetect, image, step, ext_json) -> List[Particle]:
-        back_image = background.process_background_nearest(image)
-        ext_json['background_uid'] = back_image.uid
+    def process_particle_image(self,
+                               backgrounds: BackGroundDetect,
+                               contains: ContainDetect,
+                               image, step, ext_json) -> List[Particle]:
+        background = backgrounds.process_background_nearest(image)
+        ext_json['background_uid'] = background.uid
 
-        image = np.abs(back_image.back_image.astype(np.int) - image.astype(np.int))
+        def find_contain(uid):
+            for contain in contains.contain_list:
+                if contain.uid == uid:
+                    return contain.radius
+                raise Exception(f'{self.filename2} cannot find contain {uid}')
+
+        image = np.abs(background.back_image.astype(np.int) - image.astype(np.int))
         image = image.astype(np.uint8)
 
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)  # 转为灰度值图
@@ -82,18 +92,30 @@ class ParticleWithoutBackgroundList(BaseCache):
         contours, hierarchy = cv2.findContours(binary, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)  # 寻找轮廓
 
         particles = []
+        contain_rate = 150.0 / find_contain(background.uid)
         for i, contour in enumerate(contours):
             center, radius, angle = fit_particle(contour)
+
             if center is not None:
-                particle = Particle(contour=contour, center=center, radius=radius, angle=angle,
-                                    step=step, ext_json=ext_json)
+                center = (center[0] * contain_rate, center[1] * contain_rate)
+                radius = (radius[0] * contain_rate, radius[1] * contain_rate)
+
+                particle = Particle(contour=contour,
+                                    center=center,
+                                    radius=radius,
+                                    angle=angle,
+                                    step=step,
+                                    ext_json=ext_json)
                 self.particle_list.append(particle)
                 particles.append(particle)
         return particles
 
-    def _execute(self, background: BackGroundDetect, debug=False, *args, **kwargs):
+    def _execute(self,
+                 backgrounds: BackGroundDetect,
+                 contains: ContainDetect,
+                 debug=False, *args, **kwargs):
         def fun(step, image, ext_json):
-            particles = self.process_particle_image(image, step, ext_json)
+            particles = self.process_particle_image(backgrounds, contains, image, step, ext_json)
             if debug:
                 for particle in particles:
                     cv2.ellipse(image, (particle.center, particle.radius, particle.angle), (0, 255, 0), 2)
@@ -101,14 +123,16 @@ class ParticleWithoutBackgroundList(BaseCache):
                 cv2.waitKey(delay=10)
             return len(self.particle_list)
 
-        process_wrap(fun, self.config, desc='particle')
+        process_wrap(fun, self.config, desc='detect particle')
+
+    @property
+    def particle_df(self):
+        return pd.DataFrame([par.to_json() for par in self.particle_list])
 
     def _save(self, *args, **kwargs):
         with open(self.filepath, 'wb') as fw:
             pickle.dump(self.particle_list, fw)
-        data = [par.to_json() for par in self.particle_list]
-        df = pd.DataFrame(data)
-        df.to_csv(self.particle_csv_path, index=None)
+        self.particle_df.to_csv(self.particle_csv_path, index=False)
 
     def _read(self, *args, **kwargs):
         with open(self.filepath, 'rb') as fr:
