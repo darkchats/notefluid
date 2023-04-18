@@ -5,7 +5,7 @@ import pandas as pd
 from tqdm import tqdm
 
 from notefluid.common.base.cache import CSVDataFrameCache
-from notefluid.experiment.chlamydomonas.progress.base import VideoBase
+from notefluid.experiment.chlamydomonas.base.base import VideoBase
 
 
 class TrackAnalyse(CSVDataFrameCache):

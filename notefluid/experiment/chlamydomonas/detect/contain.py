@@ -8,8 +8,8 @@ import pandas as pd
 from tqdm import tqdm
 
 from notefluid.common.base.cache import BaseCache
-from notefluid.experiment.chlamydomonas.progress.background import BackGroundDetect
-from notefluid.experiment.chlamydomonas.progress.base import VideoBase
+from notefluid.experiment.chlamydomonas.base.base import VideoBase
+from notefluid.experiment.chlamydomonas.detect.background import BackGroundDetect
 from notefluid.utils.log import logger
 
 
@@ -120,7 +120,7 @@ class ContainDetect(BaseCache):
     def contain_df(self):
         return pd.DataFrame([par.to_json() for par in self.contain_list])
 
-    def _write(self, *args, **kwargs):
+    def _save(self, *args, **kwargs):
         with open(self.filepath, 'wb') as fw:
             pickle.dump(self.contain_list, fw)
         df = self.contain_df

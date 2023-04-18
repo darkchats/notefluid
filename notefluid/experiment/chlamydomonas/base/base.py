@@ -66,7 +66,7 @@ class VideoBase(BaseCache):
             self.video_height = pickle.load(fr)
             self.frame_count = pickle.load(fr)
 
-    def _write(self, *args, **kwargs):
+    def _save(self, *args, **kwargs):
         with open(self.filepath, 'wb') as fw:
             pickle.dump(self.video_width, fw)
             pickle.dump(self.video_height, fw)
@@ -122,7 +122,7 @@ class BaseProgress:
         pass
 
     def save(self, overwrite=False, *args, **kwargs):
-        return self.config.write(overwrite=overwrite)
+        return self.config.save(overwrite=overwrite)
 
     def load(self, overwrite=False, *args, **kwargs):
         return self.config.read(overwrite=overwrite)

@@ -4,7 +4,7 @@ from typing import List
 import numpy as np
 
 from notefluid.common.base.cache import BaseCache
-from notefluid.experiment.chlamydomonas.progress.base import process_wrap, VideoBase
+from notefluid.experiment.chlamydomonas.base.base import process_wrap, VideoBase
 from notefluid.utils.log import logger
 
 
@@ -81,6 +81,6 @@ class BackGroundDetect(BaseCache):
         with open(self.filepath, 'rb') as fr:
             self.background_list = pickle.load(fr)
 
-    def _write(self, *args, **kwargs):
+    def _save(self, *args, **kwargs):
         with open(self.filepath, 'wb') as fw:
             pickle.dump(self.background_list, fw)

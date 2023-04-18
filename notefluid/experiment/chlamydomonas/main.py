@@ -2,12 +2,12 @@ import json
 import logging
 import os
 
-from notefluid.experiment.chlamydomonas.progress.analyse import TrackAnalyse, MSDCalculate
-from notefluid.experiment.chlamydomonas.progress.background import BackGroundDetect
-from notefluid.experiment.chlamydomonas.progress.base import VideoBase
-from notefluid.experiment.chlamydomonas.progress.config import Config
-from notefluid.experiment.chlamydomonas.progress.contain import ContainDetect
-from notefluid.experiment.chlamydomonas.progress.particle import ParticleWithoutBackgroundList
+from notefluid.experiment.chlamydomonas.analyse.analyse import TrackAnalyse, MSDCalculate
+from notefluid.experiment.chlamydomonas.base.base import VideoBase
+from notefluid.experiment.chlamydomonas.base.config import Config
+from notefluid.experiment.chlamydomonas.detect.background import BackGroundDetect
+from notefluid.experiment.chlamydomonas.detect.contain import ContainDetect
+from notefluid.experiment.chlamydomonas.detect.particle import ParticleWithoutBackgroundList
 from notefluid.utils.log import logger
 
 logger.setLevel(logging.INFO)

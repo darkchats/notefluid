@@ -7,8 +7,8 @@ import numpy as np
 import pandas as pd
 
 from notefluid.common.base.cache import BaseCache
-from notefluid.experiment.chlamydomonas.progress.background import BackGroundDetect
-from notefluid.experiment.chlamydomonas.progress.base import process_wrap, VideoBase
+from notefluid.experiment.chlamydomonas.base.base import process_wrap, VideoBase
+from notefluid.experiment.chlamydomonas.detect.background import BackGroundDetect
 from notefluid.utils.log import logger
 
 
@@ -103,7 +103,7 @@ class ParticleWithoutBackgroundList(BaseCache):
 
         process_wrap(fun, self.config, desc='particle')
 
-    def _write(self, *args, **kwargs):
+    def _save(self, *args, **kwargs):
         with open(self.filepath, 'wb') as fw:
             pickle.dump(self.particle_list, fw)
         data = [par.to_json() for par in self.particle_list]

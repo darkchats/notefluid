@@ -30,27 +30,27 @@ class BaseCache:
     def _read(self, *args, **kwargs):
         raise Exception("not implement.")
 
-    def _write(self, *args, **kwargs):
+    def _save(self, *args, **kwargs):
         raise Exception("not implement.")
 
     def read(self, overwrite=False, *args, **kwargs):
         if overwrite:
             logger.info(f"{self.filename2} overwrite,execute...")
             self.execute(*args, **kwargs)
-            self.write(overwrite=overwrite, *args, **kwargs)
+            self.save(overwrite=overwrite, *args, **kwargs)
         elif not self.exists():
             logger.info(f"{self.filename2} not exists,execute...")
             self.execute(*args, **kwargs)
-            self.write(overwrite=overwrite, *args, **kwargs)
+            self.save(overwrite=overwrite, *args, **kwargs)
         return self._read(*args, **kwargs)
 
-    def write(self, overwrite=False, *args, **kwargs):
+    def save(self, overwrite=False, *args, **kwargs):
         if not self.exists():
             logger.info(f"{self.filename2} not exists,save.")
-            self._write(*args, **kwargs)
+            self._save(*args, **kwargs)
         elif overwrite:
             logger.info(f"{self.filename2} exists,overwrite.")
-            self._write(*args, **kwargs)
+            self._save(*args, **kwargs)
 
 
 class BaseDataFrameCache(BaseCache):
@@ -72,7 +72,7 @@ class CSVDataFrameCache(BaseDataFrameCache):
         self.df = pd.read_csv(self.filepath)
         return self.df
 
-    def _write(self, *args, **kwargs):
+    def _save(self, *args, **kwargs):
         if self.df is None:
             logger.info("df is None.")
             return
@@ -89,6 +89,6 @@ class PickleDataFrameCache(BaseDataFrameCache):
             self.df = pickle.load(fr)
         return self.df
 
-    def _write(self, *args, **kwargs):
+    def _save(self, *args, **kwargs):
         with open(self.filepath, 'wb') as fw:
             pickle.dump(self.df, fw)
