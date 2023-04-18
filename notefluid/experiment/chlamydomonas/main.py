@@ -2,11 +2,11 @@ import json
 import logging
 import os
 
-from notefluid.experiment.chlamydomonas.progress.analyse import AnalyseParticle
-from notefluid.experiment.chlamydomonas.progress.background import BackGroundList
+from notefluid.experiment.chlamydomonas.progress.analyse import TrackAnalyse, MSDCalculate
+from notefluid.experiment.chlamydomonas.progress.background import BackGroundDetect
 from notefluid.experiment.chlamydomonas.progress.base import VideoBase
 from notefluid.experiment.chlamydomonas.progress.config import Config
-from notefluid.experiment.chlamydomonas.progress.contain import BackContainList
+from notefluid.experiment.chlamydomonas.progress.contain import ContainDetect
 from notefluid.experiment.chlamydomonas.progress.particle import ParticleWithoutBackgroundList
 from notefluid.utils.log import logger
 
@@ -16,20 +16,22 @@ logger.setLevel(logging.INFO)
 class VideoProgress:
     def __init__(self, video_path, cache_dir):
         self.base_video = VideoBase(video_path, cache_dir=cache_dir)
-        self.background = BackGroundList(config=self.base_video)
-        self.particle = ParticleWithoutBackgroundList(background=self.background)
-        self.contain = BackContainList(background=self.background)
-        self.particle_detect = AnalyseParticle(config=self.base_video, contain=self.contain, particle=self.particle)
+        self.detect_background = BackGroundDetect(config=self.base_video)
+        self.detect_particle = ParticleWithoutBackgroundList(config=self.base_video)
+        self.detect_contain = ContainDetect(config=self.base_video)
+
+        self.analyse_track = TrackAnalyse(config=self.base_video)
+        self.analyse_msd = MSDCalculate(config=self.base_video)
 
     def execute(self, ext_json=None):
         ext_json = ext_json or {}
         self.base_video.read()
-        self.background.read()
-        self.background.read()
-        self.particle.read()
+        self.detect_background.read()
+        self.detect_background.read()
+        self.detect_particle.read()
 
-        self.particle_detect.analyse_track(overwrite=False)
-        self.particle_detect.analyse_msd(overwrite=False)
+        self.analyse_track.read(contain=self.detect_contain, particle=self.detect_particle)
+        self.analyse_msd.read()
         try:
             ext_json.update({
                 "video_path": self.base_video.video_path,
@@ -37,12 +39,12 @@ class VideoProgress:
                 "video_height": self.base_video.video_height,
                 "video_width": self.base_video.video_width,
                 "frame_count": self.base_video.frame_count,
-                "particles": len(self.particle.particle_list),
-                "tracks": len(self.particle_detect.particle_track),
-                "background_size": len(self.background.background_list),
-                "backcontain_size": len(self.contain.contain_list),
-                "track_path": self.particle_detect.particle_track_path,
-                "msd_path": self.particle_detect.particle_track_msd_path
+                "particles": len(self.detect_particle.particle_list),
+                "tracks": len(self.analyse_track.df),
+                "background_size": len(self.detect_background.background_list),
+                "backcontain_size": len(self.detect_contain.contain_list),
+                "track_path": self.analyse_track.filepath,
+                "msd_path": self.analyse_msd.filepath
             })
         except Exception as e:
             print(f"main_error {self.base_video.video_path}")

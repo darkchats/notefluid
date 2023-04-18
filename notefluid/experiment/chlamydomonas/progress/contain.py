@@ -8,7 +8,8 @@ import pandas as pd
 from tqdm import tqdm
 
 from notefluid.common.base.cache import BaseCache
-from notefluid.experiment.chlamydomonas.progress.background import BackGroundList
+from notefluid.experiment.chlamydomonas.progress.background import BackGroundDetect
+from notefluid.experiment.chlamydomonas.progress.base import VideoBase
 from notefluid.utils.log import logger
 
 
@@ -77,12 +78,10 @@ class BackContain:
         }
 
 
-class BackContainList(BaseCache):
-    def __init__(self, background: BackGroundList, *args, **kwargs):
-        super(BackContainList, self).__init__(*args, **kwargs)
-        self.config = background.config
-        self.background = background
-        self.backcontain_path = f'{self.config.cache_dir}/backcontain.pkl'
+class ContainDetect(BaseCache):
+    def __init__(self, config: VideoBase, *args, **kwargs):
+        self.config = config
+        super(ContainDetect, self).__init__(filepath=f'{self.config.cache_dir}/backcontain.pkl', *args, **kwargs)
         self.backcontain_csv_path = f'{self.config.cache_dir}/backcontain.csv'
         self.contain_list: List[BackContain] = []
 
@@ -110,8 +109,8 @@ class BackContainList(BaseCache):
             cv2.waitKey()
         return [result_contain] if result_contain is not None else []
 
-    def _execute(self, overwrite=False, debug=False, *args, **kwargs):
-        pbar = tqdm(enumerate(self.background.background_list))
+    def _execute(self, background: BackGroundDetect, overwrite=False, debug=False, *args, **kwargs):
+        pbar = tqdm(enumerate(background.background_list))
         for step, background in pbar:
             image = background.back_image
             contains = self.process_contain_image(image, 0, None, debug=debug)
@@ -122,12 +121,12 @@ class BackContainList(BaseCache):
         return pd.DataFrame([par.to_json() for par in self.contain_list])
 
     def _write(self, *args, **kwargs):
-        with open(self.backcontain_path, 'wb') as fw:
+        with open(self.filepath, 'wb') as fw:
             pickle.dump(self.contain_list, fw)
         df = self.contain_df
         df.to_csv(self.backcontain_csv_path, index=None)
 
     def _read(self, *args, **kwargs):
-        with open(self.backcontain_path, 'rb') as fr:
+        with open(self.filepath, 'rb') as fr:
             self.contain_list = pickle.load(fr)
         return True

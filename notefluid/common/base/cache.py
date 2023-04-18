@@ -14,6 +14,10 @@ class BaseCache:
     def filename(self):
         return os.path.basename(self.filepath)
 
+    @property
+    def filename2(self):
+        return os.path.sep.join(self.filepath.split(os.path.sep)[-2:])
+
     def exists(self):
         return os.path.exists(self.filepath)
 
@@ -31,21 +35,21 @@ class BaseCache:
 
     def read(self, overwrite=False, *args, **kwargs):
         if overwrite:
-            logger.info("overwrite,execute...")
+            logger.info(f"{self.filename2} overwrite,execute...")
             self.execute(*args, **kwargs)
             self.write(overwrite=overwrite, *args, **kwargs)
         elif not self.exists():
-            logger.info(f"{self.filename} not exists,execute...")
+            logger.info(f"{self.filename2} not exists,execute...")
             self.execute(*args, **kwargs)
             self.write(overwrite=overwrite, *args, **kwargs)
         return self._read(*args, **kwargs)
 
     def write(self, overwrite=False, *args, **kwargs):
         if not self.exists():
-            logger.info(f"{self.filename}  file not exists,save.")
+            logger.info(f"{self.filename2} not exists,save.")
             self._write(*args, **kwargs)
         elif overwrite:
-            logger.info("file exists,overwrite.")
+            logger.info(f"{self.filename2} exists,overwrite.")
             self._write(*args, **kwargs)
 
 
@@ -56,19 +60,6 @@ class BaseDataFrameCache(BaseCache):
 
     def execute(self, *args, **kwargs):
         self.df = self._execute(*args, **kwargs)
-        return self.df
-
-    def read(self, overwrite=False, *args, **kwargs):
-        if overwrite:
-            logger.info("overwrite,execute...")
-            self.df = self.execute(*args, **kwargs)
-            self.write(overwrite=overwrite, *args, **kwargs)
-        elif not self.exists():
-            logger.info(f"{self.filename} not exists,execute...")
-            self.df = self.execute(*args, **kwargs)
-            self.write(overwrite=overwrite, *args, **kwargs)
-        elif self.df is None:
-            self.df = self._read(*args, **kwargs)
         return self.df
 
 

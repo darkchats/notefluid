@@ -4,14 +4,14 @@ import math
 import pandas as pd
 from tqdm import tqdm
 
-from notefluid.common.base.cache import CSVDataFrameCache, BaseCache
-from notefluid.experiment.chlamydomonas.progress.contain import BackContainList
-from notefluid.experiment.chlamydomonas.progress.particle import ParticleWithoutBackgroundList
+from notefluid.common.base.cache import CSVDataFrameCache
+from notefluid.experiment.chlamydomonas.progress.base import VideoBase
 
 
 class TrackAnalyse(CSVDataFrameCache):
-    def __init__(self, *args, **kwargs):
-        super(TrackAnalyse, self).__init__(*args, **kwargs)
+    def __init__(self, config: VideoBase, *args, **kwargs):
+        self.config = config
+        super(TrackAnalyse, self).__init__(filepath=f'{self.config.cache_dir}/particle_track.csv', *args, **kwargs)
 
     def _execute(self, contains, particles, debug=False, *args, **kwargs):
         cx, cy, r = contains.values[0]
@@ -84,8 +84,9 @@ class TrackAnalyse(CSVDataFrameCache):
 
 
 class MSDCalculate(CSVDataFrameCache):
-    def __init__(self, *args, **kwargs):
-        super(MSDCalculate, self).__init__(*args, **kwargs)
+    def __init__(self, config: VideoBase, *args, **kwargs):
+        self.config = config
+        super(MSDCalculate, self).__init__(filepath=f'{self.config.cache_dir}/particle_track_msd.csv', *args, **kwargs)
 
     def _execute(self, track_df, *args, **kwargs):
         msd_result = []
@@ -103,37 +104,3 @@ class MSDCalculate(CSVDataFrameCache):
         msd_df = pd.DataFrame(msd_result)
         msd_df.columns = ['t', 'sum', 'cnt']
         return msd_df
-
-
-class AnalyseParticle(BaseCache):
-    def __init__(self, contain: BackContainList, particle: ParticleWithoutBackgroundList, *args, **kwargs):
-        super(AnalyseParticle, self).__init__(*args, **kwargs)
-        self.config = particle.config
-        self.contain = contain
-        self.particle = particle
-        self.track_cache = TrackAnalyse(filepath=f'{self.config.cache_dir}/particle_track.csv')
-        self.msd_cache = MSDCalculate(filepath=f'{self.config.cache_dir}/particle_track_msd.csv')
-
-    @property
-    def particle_track_path(self):
-        return self.track_cache.filepath
-
-    @property
-    def particle_track_msd_path(self):
-        return self.msd_cache.filepath
-
-    @property
-    def particle_track(self):
-        return self.track_cache.df
-
-    def analyse_track(self, overwrite=False, debug=False, *args, **kwargs):
-        if len(self.contain.contain_list) == 0 or not self.particle.exists():
-            return
-
-        self.track_cache.read(contains=self.contain.contain_df,
-                              particles=self.particle.particle_list,
-                              debug=debug,
-                              overwrite=overwrite)
-
-    def analyse_msd(self, overwrite=False, debug=False, *args, **kwargs):
-        self.msd_cache.read(track_df=self.particle_track, overwrite=overwrite)

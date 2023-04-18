@@ -43,9 +43,9 @@ class BackGround:
         return f"{self.uid}    {self.count}    {self.back_image.shape}"
 
 
-class BackGroundList(BaseCache):
+class BackGroundDetect(BaseCache):
     def __init__(self, config: VideoBase, *args, **kwargs):
-        super(BackGroundList, self).__init__(filepath=f'{config.cache_dir}/background.pkl', *args, **kwargs)
+        super(BackGroundDetect, self).__init__(filepath=f'{config.cache_dir}/background.pkl', *args, **kwargs)
         self.config = config
         self.background_list: List[BackGround] = []
 

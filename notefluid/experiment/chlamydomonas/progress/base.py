@@ -40,14 +40,22 @@ class VideoBase(BaseCache):
         camera = cv2.VideoCapture(self.video_path)
         self.video_width = int(camera.get(cv2.CAP_PROP_FRAME_WIDTH))
         self.video_height = int(camera.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        rate = camera.get(cv2.CAP_PROP_FPS)
+        frame_counter = int(camera.get(cv2.CAP_PROP_FRAME_COUNT))
+
+        pbar = tqdm(range(int(frame_counter / rate * 1000)))
         step = 0
         while True:
             step += 1
             res, image = camera.read()
             if not res:
                 break
+            millisecond = int(camera.get(cv2.CAP_OPENNI_DEPTH_MAP))
+            if millisecond > 0:
+                pbar.update(millisecond - pbar.n)
         self.frame_count = step
         camera.release()
+        pbar.close()
 
     def print(self):
         logging.info(f"config-second:{self.start_second}->{self.end_second}")

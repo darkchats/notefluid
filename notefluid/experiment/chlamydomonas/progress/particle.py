@@ -6,9 +6,9 @@ import cv2
 import numpy as np
 import pandas as pd
 
-from notefluid.common.base.cache import CSVDataFrameCache, PickleDataFrameCache, BaseCache
-from notefluid.experiment.chlamydomonas.progress.background import BackGroundList
-from notefluid.experiment.chlamydomonas.progress.base import process_wrap
+from notefluid.common.base.cache import BaseCache
+from notefluid.experiment.chlamydomonas.progress.background import BackGroundDetect
+from notefluid.experiment.chlamydomonas.progress.base import process_wrap, VideoBase
 from notefluid.utils.log import logger
 
 
@@ -60,23 +60,16 @@ class Particle:
         }
 
 
-class ParticleCalculate(CSVDataFrameCache, PickleDataFrameCache):
-    def __init__(self, *args, **kwargs):
-        super(ParticleCalculate, self).__init__(*args, **kwargs)
-
-
 class ParticleWithoutBackgroundList(BaseCache):
-    def __init__(self, background: BackGroundList, *args, **kwargs):
-        self.config = background.config
+    def __init__(self, config: VideoBase, *args, **kwargs):
+        self.config = config
         super(ParticleWithoutBackgroundList, self).__init__(
             filepath=f'{self.config.cache_dir}/particle_without_list.pkl', *args, **kwargs)
-
-        self.background = background
         self.particle_csv_path = f'{self.config.cache_dir}/particle_without_list.csv'
         self.particle_list: List[Particle] = []
 
-    def process_particle_image(self, image, step, ext_json) -> List[Particle]:
-        back_image = self.background.process_background_nearest(image)
+    def process_particle_image(self, background: BackGroundDetect, image, step, ext_json) -> List[Particle]:
+        back_image = background.process_background_nearest(image)
         ext_json['background_uid'] = back_image.uid
 
         image = np.abs(back_image.back_image.astype(np.int) - image.astype(np.int))
@@ -98,7 +91,7 @@ class ParticleWithoutBackgroundList(BaseCache):
                 particles.append(particle)
         return particles
 
-    def _execute(self, debug=False, *args, **kwargs):
+    def _execute(self, background: BackGroundDetect, debug=False, *args, **kwargs):
         def fun(step, image, ext_json):
             particles = self.process_particle_image(image, step, ext_json)
             if debug:
