@@ -8,8 +8,8 @@ import pandas as pd
 
 from notefluid.common.base.cache import BaseCache
 from notefluid.experiment.chlamydomonas.base.base import process_wrap, VideoBase
-from notefluid.experiment.chlamydomonas.detect.background import BackGroundDetect
-from notefluid.experiment.chlamydomonas.detect.contain import ContainDetect
+from notefluid.experiment.chlamydomonas.detect.background import BackGroundDetect, BackGround
+from notefluid.experiment.chlamydomonas.detect.contain import ContainDetect, BackContain
 from notefluid.utils.log import logger
 
 
@@ -69,19 +69,9 @@ class ParticleDetect(BaseCache):
         self.particle_csv_path = f'{self.config.cache_dir}/detect_particles.csv'
         self.particle_list: List[Particle] = []
 
-    def process_particle_image(self,
-                               backgrounds: BackGroundDetect,
-                               contains: ContainDetect,
+    def process_particle_image(self, background: BackGround, contain: BackContain,
                                image, step, ext_json) -> List[Particle]:
-        background = backgrounds.process_background_nearest(image)
         ext_json['background_uid'] = background.uid
-
-        def find_contain(uid):
-            for contain in contains.contain_list:
-                if contain.uid == uid:
-                    return contain.radius
-                raise Exception(f'{self.filename2} cannot find contain {uid}')
-
         image = np.abs(background.back_image.astype(np.int) - image.astype(np.int))
         image = image.astype(np.uint8)
 
@@ -92,22 +82,17 @@ class ParticleDetect(BaseCache):
         contours, hierarchy = cv2.findContours(binary, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)  # 寻找轮廓
 
         particles = []
-        contain_rate = 150.0 / find_contain(background.uid)
         for i, contour in enumerate(contours):
             center, radius, angle = fit_particle(contour)
+            if center is None:
+                continue
+            if not contain.is_inside(center):
+                continue
 
-            if center is not None:
-                center = (center[0] * contain_rate, center[1] * contain_rate)
-                radius = (radius[0] * contain_rate, radius[1] * contain_rate)
-
-                particle = Particle(contour=contour,
-                                    center=center,
-                                    radius=radius,
-                                    angle=angle,
-                                    step=step,
-                                    ext_json=ext_json)
-                self.particle_list.append(particle)
-                particles.append(particle)
+            particle = Particle(contour=contour, center=center, radius=radius, angle=angle, step=step,
+                                ext_json=ext_json)
+            self.particle_list.append(particle)
+            particles.append(particle)
         return particles
 
     def _execute(self,
@@ -115,10 +100,15 @@ class ParticleDetect(BaseCache):
                  contains: ContainDetect,
                  debug=False, *args, **kwargs):
         def fun(step, image, ext_json):
-            particles = self.process_particle_image(backgrounds, contains, image, step, ext_json)
+            background = backgrounds.process_background_nearest(image)
+            contain = contains.find_contain(background.uid)
+            particles = self.process_particle_image(background, contain, image, step, ext_json)
             if debug:
+                cv2.circle(image, (int(contain.center[0]), int(contain.center[1])), int(contain.radius), (0, 255, 0), 2)
+
                 for particle in particles:
                     cv2.ellipse(image, (particle.center, particle.radius, particle.angle), (0, 255, 0), 2)
+
                 cv2.imshow(f'{os.path.basename(self.config.video_path)}', image)
                 cv2.waitKey(delay=10)
             return len(self.particle_list)

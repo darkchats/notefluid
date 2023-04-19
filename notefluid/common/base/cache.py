@@ -59,8 +59,7 @@ class BaseDataFrameCache(BaseCache):
         self.df = None
 
     def execute(self, *args, **kwargs):
-        self.df = self._execute(*args, **kwargs)
-        return self.df
+        self._execute(*args, **kwargs)
 
 
 class CSVDataFrameCache(BaseDataFrameCache):
@@ -68,12 +67,15 @@ class CSVDataFrameCache(BaseDataFrameCache):
         super(CSVDataFrameCache, self).__init__(*args, **kwargs)
         self.df = None
 
+    def _parse(self, df, *args, **kwargs):
+        self.df = df
+
     def _read(self, *args, **kwargs):
-        self.df = pd.read_csv(self.filepath)
+        self._parse(pd.read_csv(self.filepath))
         return self.df
 
     def _save(self, *args, **kwargs):
-        if self.df is None:
+        if self.df is None or len(self.df) == 0:
             logger.info("df is None.")
             return
         self.df.to_csv(self.filepath, index=None)

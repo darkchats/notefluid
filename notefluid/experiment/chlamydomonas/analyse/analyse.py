@@ -16,7 +16,7 @@ class TrackAnalyse(CSVDataFrameCache):
         super(TrackAnalyse, self).__init__(filepath=f'{self.config.cache_dir}/analyse_track.csv', *args, **kwargs)
 
     def _execute(self, contains: ContainDetect, particles: ParticleDetect, debug=False, *args, **kwargs):
-        contain_df = contains.contain_df
+        contain_df = contains.df
         particle_df = particles.particle_df
         cx, cy, r, uid = contain_df.values[0]
 
@@ -92,22 +92,18 @@ class MSDCalculate(CSVDataFrameCache):
         self.config = config
         super(MSDCalculate, self).__init__(filepath=f'{self.config.cache_dir}/analyse_mse.csv', *args, **kwargs)
 
-    def _execute(self, track: TrackAnalyse, contains: ContainDetect, contain_size=150, *args, **kwargs):
+    def _execute(self, track: TrackAnalyse, contains: ContainDetect, contain_size=150.0, *args, **kwargs):
         track_df = track.df
-        contain_df = contains.contain_df
         msd_result = []
         if track_df is None:
             return None
 
-        def find_contain(uid):
-            for contain in contains.contain_list:
-                if contain.uid == uid:
-                    return contain.radius
-                raise Exception(f'{self.filename2} cannot find contain {uid}')
+        def find_contain_rate(uid):
+            return contain_size / contains.find_contain(uid).radius
 
-        track_df['_r'] = track_df['background_uid'].apply(lambda x: find_contain(x))
-        track_df['centerX'] = track_df['centerX'] / track_df['_r'] * contain_size
-        track_df['centerY'] = track_df['centerY'] / track_df['_r'] * contain_size
+        track_df['_r'] = track_df['background_uid'].apply(lambda x: find_contain_rate(x))
+        track_df['centerX'] = track_df['centerX'] * track_df['_r']
+        track_df['centerY'] = track_df['centerY'] * track_df['_r']
         df_fill = pd.DataFrame([[i + 1] for i in range(track_df['step'].max())])
 
         df_fill.columns = ['step']

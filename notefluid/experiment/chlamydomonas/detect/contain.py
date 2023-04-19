@@ -1,13 +1,15 @@
+import json
+import math
 import os.path
-import pickle
 from typing import List
 
 import cv2
 import numpy as np
 import pandas as pd
+from pandas import DataFrame
 from tqdm import tqdm
 
-from notefluid.common.base.cache import BaseCache
+from notefluid.common.base.cache import CSVDataFrameCache
 from notefluid.experiment.chlamydomonas.base.base import VideoBase
 from notefluid.experiment.chlamydomonas.detect.background import BackGroundDetect, BackGround
 from notefluid.utils.log import logger
@@ -42,10 +44,10 @@ def fit_contain(contour):
 
 
 class BackContain:
-    def __init__(self, uid=0):
-        self.center = np.array([0, 0])
-        self.radius = 0
-        self.count = 0
+    def __init__(self, center=None, radius=0, count=0, uid=0):
+        self.center = center or np.array([0, 0])
+        self.radius = radius
+        self.count = count
         self.uid = uid
 
     def add(self, center, radius):
@@ -71,23 +73,38 @@ class BackContain:
             return False
         return True
 
+    def is_inside(self, center) -> bool:
+        dis = self.cul_distance(center)
+        return dis < self.radius
+
+    def cul_distance(self, center):
+        return math.sqrt((center[0] - self.center[0]) ** 2 + (center[1] - self.center[1]) ** 2)
+
     def to_json(self):
         return {
             "centerX": self.center[0],
             "centerY": self.center[1],
             "radius": self.radius,
+            "count": self.count,
             "uid": self.uid
         }
 
+    def parse(self, data):
+        self.center[0] = data['centerX']
+        self.center[1] = data['centerY']
+        self.radius = data['radius']
+        self.count = data['count']
+        self.uid = data['uid']
+        return self
 
-class ContainDetect(BaseCache):
+
+class ContainDetect(CSVDataFrameCache):
     def __init__(self, config: VideoBase, *args, **kwargs):
         self.config = config
-        super(ContainDetect, self).__init__(filepath=f'{self.config.cache_dir}/detect_contains.pkl', *args, **kwargs)
-        self.backcontain_csv_path = f'{self.config.cache_dir}/detect_contains.csv'
+        super(ContainDetect, self).__init__(filepath=f'{self.config.cache_dir}/detect_contains.csv', *args, **kwargs)
         self.contain_list: List[BackContain] = []
 
-    def process_contain_image(self, background: BackGround, step, ext_json, debug=False) -> List[BackContain]:
+    def process_contain_image(self, background: BackGround, debug=False) -> List[BackContain]:
         gray = cv2.cvtColor(background.back_image, cv2.COLOR_BGR2GRAY)  # 转为灰度值图
         ret, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_TRIANGLE)  # 转为二值图
         contours, hierarchy = cv2.findContours(binary, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)  # 寻找轮廓
@@ -113,19 +130,17 @@ class ContainDetect(BaseCache):
 
     def _execute(self, backgrounds: BackGroundDetect, overwrite=False, debug=False, *args, **kwargs):
         for step, background in tqdm(enumerate(backgrounds.background_list), desc='detect contain'):
-            contains = self.process_contain_image(background, 0, None, debug=debug)
+            contains = self.process_contain_image(background, debug=debug)
             self.contain_list.extend(contains)
+        self.df = pd.DataFrame([par.to_json() for par in self.contain_list])
 
-    @property
-    def contain_df(self):
-        return pd.DataFrame([par.to_json() for par in self.contain_list])
+    def find_contain(self, uid) -> BackContain:
+        for contain in self.contain_list:
+            if contain.uid == uid:
+                return contain
+        raise Exception(f'cannot find contain {uid}')
 
-    def _save(self, *args, **kwargs):
-        with open(self.filepath, 'wb') as fw:
-            pickle.dump(self.contain_list, fw)
-        self.contain_df.to_csv(self.backcontain_csv_path, index=False)
-
-    def _read(self, *args, **kwargs):
-        with open(self.filepath, 'rb') as fr:
-            self.contain_list = pickle.load(fr)
-        return True
+    def _parse(self, df: DataFrame, *args, **kwargs):
+        for record in json.loads(df.to_json(orient='records')):
+            self.df = df
+            self.contain_list.append(BackContain().parse(record))

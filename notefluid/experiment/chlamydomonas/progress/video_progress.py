@@ -20,16 +20,17 @@ class VideoProgress:
         self.analyse_track = TrackAnalyse(config=self.base_video)
         self.analyse_msd = MSDCalculate(config=self.base_video)
 
-    def execute(self, ext_json=None):
+    def execute(self, ext_json=None, debug=False):
         ext_json = ext_json or {}
-        self.base_video.read()
-        self.detect_background.read()
-        self.detect_contain.read(backgrounds=self.detect_background)
-        self.detect_particle.read(backgrounds=self.detect_background, contains=self.detect_contain)
 
-        self.analyse_track.read(contains=self.detect_contain, particles=self.detect_particle)
-        self.analyse_msd.read(track=self.analyse_track, contains=self.detect_contain)
         try:
+            self.base_video.read()
+            self.detect_background.read()
+            self.detect_contain.read(backgrounds=self.detect_background)
+            self.detect_particle.read(backgrounds=self.detect_background, contains=self.detect_contain, debug=debug)
+
+            self.analyse_track.read(contains=self.detect_contain, particles=self.detect_particle)
+            self.analyse_msd.read(track=self.analyse_track, contains=self.detect_contain)
             ext_json.update({
                 "video_path": self.base_video.video_path,
                 "cache_dir": self.base_video.cache_dir,

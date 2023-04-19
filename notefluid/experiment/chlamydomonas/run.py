@@ -13,7 +13,7 @@ class MainProgress:
     def __init__(self, config: GlobalConfig):
         self.config = config
 
-    def run(self):
+    def run(self, debug=False):
         result = []
         for root, directories, files in os.walk(self.config.videos_dir):
             if root.endswith('useless'):
@@ -33,7 +33,7 @@ class MainProgress:
 
                 cache_dir = global_config.get_result_path(video_path=video_path)
                 video_progress = VideoProgress(video_path=video_path, cache_dir=cache_dir)
-                result.append(video_progress.execute(ext_json=ext_json))
+                result.append(video_progress.execute(ext_json=ext_json, debug=debug))
 
         with open(self.config.results_json, 'w') as fr:
             fr.write(json.dumps(result))
@@ -41,5 +41,5 @@ class MainProgress:
 
 
 global_config = GlobalConfig(path_root='/Volumes/ChenDisk/experiment')
-MainProgress(global_config).run()
+MainProgress(global_config).run(debug=False)
 # Main(path_root='/Users/chen/data/experiment').run()
