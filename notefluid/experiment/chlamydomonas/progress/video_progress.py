@@ -33,6 +33,7 @@ class VideoProgress:
             self.analyse_msd.read(track=self.analyse_track, contains=self.detect_contain)
             ext_json.update({
                 "video_path": self.base_video.video_path,
+                "video_name": self.base_video.video_name,
                 "cache_dir": self.base_video.cache_dir,
                 "video_height": self.base_video.video_height,
                 "video_width": self.base_video.video_width,

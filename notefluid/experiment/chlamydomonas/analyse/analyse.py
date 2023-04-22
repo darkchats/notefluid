@@ -16,25 +16,23 @@ class TrackAnalyse(CSVDataFrameCache):
         super(TrackAnalyse, self).__init__(filepath=f'{self.config.cache_dir}/analyse_track.csv', *args, **kwargs)
 
     def _execute(self, contains: ContainDetect, particles: ParticleDetect, debug=False, *args, **kwargs):
-        contain_df = contains.df
         particle_df = particles.particle_df
-        cx, cy, r, uid = contain_df.values[0]
 
         def cul_dis(x, y, _x, _y):
             return math.sqrt((x - _x) * (x - _x) + (y - _y) * (y - _y))
 
         def cul_par_dis(row):
-            x, y = row['centerX'], row['centerX']
+            center = (row['centerX'], row['centerY'])
             # cx, cy
-            index = int(row['background_uid'] - 1)
-            if index > len(contain_df):
-                index = 0
-            _cx, _cy, _cr, _uid = contain_df.values[index]
-            return cul_dis(x, y, _cx, _cy)
+            contain = contains.find_contain(row['background_uid'])
+            if contain.is_inside(center):
+                return contain.cul_distance(center)
+            else:
+                return -1
 
         # 过滤容器外部的颗粒
         particle_df['dis'] = particle_df.apply(lambda x: cul_par_dis(x), axis=1)
-        particle_df = particle_df[particle_df['dis'] <= r * 1.02]
+        particle_df = particle_df[particle_df['dis'] > 0]
 
         # 过滤跳跃式颗粒
         pre_line = None
@@ -84,7 +82,7 @@ class TrackAnalyse(CSVDataFrameCache):
             else:
                 result2.append(result[index])
             pre_line = result2[len(result2) - 1]
-        return pd.DataFrame(result2)
+        self.df = pd.DataFrame(result2)
 
 
 class MSDCalculate(CSVDataFrameCache):
@@ -117,4 +115,4 @@ class MSDCalculate(CSVDataFrameCache):
             msd_result.append([i * 0.06, df_fill['T'].sum(), df_fill['T'].count()])
         msd_df = pd.DataFrame(msd_result)
         msd_df.columns = ['t', 'sum', 'cnt']
-        return msd_df
+        self.df = msd_df

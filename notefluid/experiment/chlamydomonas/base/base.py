@@ -12,8 +12,9 @@ from notefluid.common.base.cache import BaseCache
 class VideoBase(BaseCache):
     def __init__(self, video_path, cache_dir='./cache_dir',
                  start_second=0, end_second=5 * 3600 * 1000, *args, **kwargs):
+        self.video_name = os.path.basename(video_path)
         self.video_path = video_path
-        self.cache_dir = f"{cache_dir}/{os.path.basename(video_path)}"
+        self.cache_dir = f"{cache_dir}/{self.video_name}"
         super(VideoBase, self).__init__(filepath=f"{self.cache_dir}/base.pkl", *args, **kwargs)
 
         self.start_second = start_second

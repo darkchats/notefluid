@@ -39,14 +39,15 @@ def fit_particle(contour):
 
 
 class Particle:
-    def __init__(self, contour, center, radius, angle, step, ext_json):
+    def __init__(self, contour, center, radius, angle, step, millisecond=None, background_uid=None, ext_json=None):
+        ext_json = ext_json or {}
         self.contour = contour
         self.center = center
         self.radius = radius
         self.angle = angle
         self.step = step
-        self.millisecond = ext_json.get("millisecond", 0)
-        self.background_uid = ext_json.get("background_uid", 0)
+        self.millisecond = millisecond or ext_json.get("millisecond", 0)
+        self.background_uid = background_uid or ext_json.get("background_uid", 0)
 
     def to_json(self):
         return {
@@ -59,6 +60,16 @@ class Particle:
             "millisecond": self.millisecond,
             "background_uid": self.background_uid
         }
+
+    def parse(self, data):
+        self.step = data["step"]
+        self.center[0] = data["centerX"]
+        self.center[1] = data["centerY"]
+        self.radius[0] = data["radiusA"]
+        self.radius[1] = data["radiusB"]
+        self.angle = data["angle"]
+        self.millisecond = data["millisecond"]
+        self.background_uid = data["background_uid"]
 
 
 class ParticleDetect(BaseCache):
@@ -105,7 +116,6 @@ class ParticleDetect(BaseCache):
             particles = self.process_particle_image(background, contain, image, step, ext_json)
             if debug:
                 cv2.circle(image, (int(contain.center[0]), int(contain.center[1])), int(contain.radius), (0, 255, 0), 2)
-
                 for particle in particles:
                     cv2.ellipse(image, (particle.center, particle.radius, particle.angle), (0, 255, 0), 2)
 
