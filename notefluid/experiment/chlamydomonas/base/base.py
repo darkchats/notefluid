@@ -7,14 +7,15 @@ import cv2
 from tqdm import tqdm
 
 from notefluid.common.base.cache import BaseCache
+from notefluid.experiment.chlamydomonas.base.globalconfig import VideoSplit
 
 
 class VideoBase(BaseCache):
-    def __init__(self, video_path, cache_dir='./cache_dir',
-                 start_second=0, end_second=5 * 3600 * 1000, *args, **kwargs):
-        self.video_name = os.path.basename(video_path)
-        self.video_path = video_path
-        self.cache_dir = f"{cache_dir}/{self.video_name}"
+    def __init__(self, video_split: VideoSplit, start_second=0, end_second=5 * 3600 * 1000, *args, **kwargs):
+        self.video_split = video_split
+        self.video_name = video_split.video_name
+        self.video_paths = video_split.video_paths
+        self.cache_dir = video_split.cache_dir
         super(VideoBase, self).__init__(filepath=f"{self.cache_dir}/base.pkl", *args, **kwargs)
 
         self.start_second = start_second
@@ -28,7 +29,7 @@ class VideoBase(BaseCache):
     def load_config(self):
         if not os.path.exists(self.cache_dir):
             os.makedirs(self.cache_dir)
-        config_path = self.video_path.replace(".avi", ".json")
+        config_path = self.video_split.config_path
         if not os.path.exists(config_path):
             return
         data = json.loads(open(config_path, 'r').read())
@@ -38,28 +39,38 @@ class VideoBase(BaseCache):
             self.end_second = data['endSecond']
 
     def execute(self, *args, **kwargs):
-        camera = cv2.VideoCapture(self.video_path)
-        self.video_width = int(camera.get(cv2.CAP_PROP_FRAME_WIDTH))
-        self.video_height = int(camera.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        rate = camera.get(cv2.CAP_PROP_FPS)
-        frame_counter = int(camera.get(cv2.CAP_PROP_FRAME_COUNT))
+        step = 1
 
-        pbar = tqdm(range(int(frame_counter / rate * 1000)))
-        step = 0
-        while True:
-            step += 1
-            res, image = camera.read()
-            if not res:
-                break
-            millisecond = int(camera.get(cv2.CAP_OPENNI_DEPTH_MAP))
-            if millisecond > 0:
-                pbar.update(millisecond - pbar.n)
+        for video_path in self.video_paths:
+            camera = cv2.VideoCapture(video_path)
+            self.video_width = int(camera.get(cv2.CAP_PROP_FRAME_WIDTH))
+            self.video_height = int(camera.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            rate = camera.get(cv2.CAP_PROP_FPS)
+            frame_counter = int(camera.get(cv2.CAP_PROP_FRAME_COUNT))
+            pbar = tqdm(range(int(frame_counter / rate * 1000)))
+
+            while True:
+                res, image = camera.read()
+                if not res:
+                    break
+                step += 1
+                millisecond = int(camera.get(cv2.CAP_OPENNI_DEPTH_MAP))
+                if millisecond > 0:
+                    pbar.update(millisecond - pbar.n)
+            camera.release()
+            pbar.close()
+
         self.frame_count = step
-        camera.release()
-        pbar.close()
 
     def print(self):
         logging.info(f"config-second:{self.start_second}->{self.end_second}")
+
+    def to_json(self):
+        return {
+            "video_height": self.video_height,
+            "video_width": self.video_width,
+            "frame_count": self.frame_count
+        }
 
     def _read(self, *args, **kwargs):
         with open(self.filepath, 'rb') as fr:
@@ -75,11 +86,18 @@ class VideoBase(BaseCache):
 
 
 def process_wrap(fun, config: VideoBase, desc='process'):
-    camera = cv2.VideoCapture(config.video_path)
+    index = 0
+    camera = cv2.VideoCapture(config.video_paths[index])
     for step in tqdm(range(1, config.frame_count + 5), desc=desc):
         res, image = camera.read()
         if not res:
-            break
+            camera.release()
+            index += 1
+            if index >= len(config.video_paths):
+                break
+            camera = cv2.VideoCapture(config.video_paths[index])
+            res, image = camera.read()
+
         image = cv2.GaussianBlur(image, (3, 3), 1)
         millisecond = int(camera.get(cv2.CAP_OPENNI_DEPTH_MAP))
 

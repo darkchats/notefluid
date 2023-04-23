@@ -1,11 +1,6 @@
-import numpy as np
-from scipy.optimize import curve_fit
+import os
 
-
-def func(x, a, b):
-    return a * x ** b
-
-
-def cul_popt(xd, yd):
-    popt, _ = curve_fit(func, np.array(xd), np.array(yd))
-    return popt
+path = '/c/d/a1.txt'
+a, b = os.path.splitext(path)
+print(a)
+print(os.path.splitext(a))

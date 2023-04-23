@@ -44,34 +44,11 @@ def fit_contain(contour):
 
 
 class BackContain:
-    def __init__(self, center=None, radius=0, count=0, uid=0):
-        self.center = center or np.array([0, 0])
+    def __init__(self, center=np.array([0, 0]), radius=0, count=0, uid=0):
+        self.center = center
         self.radius = radius
         self.count = count
         self.uid = uid
-
-    def add(self, center, radius):
-        if self.count == 0:
-            self.count += 1
-            self.center = center
-            self.radius = radius
-            return
-
-        self.center = self.center * self.count + center
-        self.radius = self.radius * self.count + radius
-        self.count += 1
-        self.center /= self.count
-        self.radius /= self.count
-        return self
-
-    def valid(self, center, radius):
-        s1 = np.linalg.norm(self.center - center)
-        if s1 > 10:
-            return False
-        s2 = abs(self.radius - radius)
-        if s2 > 10:
-            return False
-        return True
 
     def is_inside(self, center) -> bool:
         dis = self.cul_distance(center)
@@ -117,8 +94,7 @@ class ContainDetect(CSVDataFrameCache):
                     cv2.circle(background.back_image, (int(center[0]), int(center[1])), int(radius), (0, 255, 0), 2)
                     cv2.circle(binary, (int(center[0]), int(center[1])), int(radius), (0, 255, 0), 2)
 
-                contain = BackContain(uid=background.uid)
-                contain.add(center, radius)
+                contain = BackContain(center=center, radius=radius, count=background.count, uid=background.uid)
                 if result_contain is None or contain.radius < result_contain.radius:
                     result_contain = contain
 
@@ -129,7 +105,7 @@ class ContainDetect(CSVDataFrameCache):
         return [result_contain] if result_contain is not None else []
 
     def _execute(self, backgrounds: BackGroundDetect, overwrite=False, debug=False, *args, **kwargs):
-        for step, background in tqdm(enumerate(backgrounds.background_list), desc='detect contain'):
+        for background in tqdm(backgrounds.background_list, desc='detect contain'):
             contains = self.process_contain_image(background, debug=debug)
             self.contain_list.extend(contains)
         self.df = pd.DataFrame([par.to_json() for par in self.contain_list])
@@ -141,6 +117,6 @@ class ContainDetect(CSVDataFrameCache):
         raise Exception(f'cannot find contain {uid}')
 
     def _parse(self, df: DataFrame, *args, **kwargs):
+        self.df = df
         for record in json.loads(df.to_json(orient='records')):
-            self.df = df
             self.contain_list.append(BackContain().parse(record))
