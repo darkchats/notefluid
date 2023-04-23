@@ -1,4 +1,3 @@
-import os.path
 import pickle
 from typing import List
 
@@ -119,7 +118,7 @@ class ParticleDetect(BaseCache):
                 for particle in particles:
                     cv2.ellipse(image, (particle.center, particle.radius, particle.angle), (0, 255, 0), 2)
 
-                cv2.imshow(f'{os.path.basename(self.config.video_path)}', image)
+                cv2.imshow(f'{self.config.video_name}', image)
                 cv2.waitKey(delay=10)
             return len(self.particle_list)
 

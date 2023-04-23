@@ -47,7 +47,7 @@ class VideoBase(BaseCache):
             self.video_height = int(camera.get(cv2.CAP_PROP_FRAME_HEIGHT))
             rate = camera.get(cv2.CAP_PROP_FPS)
             frame_counter = int(camera.get(cv2.CAP_PROP_FRAME_COUNT))
-            pbar = tqdm(range(int(frame_counter / rate * 1000)))
+            pbar = tqdm(range(int(frame_counter / rate * 1000)), desc=os.path.basename(video_path))
 
             while True:
                 res, image = camera.read()

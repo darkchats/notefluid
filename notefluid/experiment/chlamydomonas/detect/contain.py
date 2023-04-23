@@ -1,6 +1,5 @@
 import json
 import math
-import os.path
 from typing import List
 
 import cv2
@@ -98,9 +97,9 @@ class ContainDetect(CSVDataFrameCache):
                 if result_contain is None or contain.radius < result_contain.radius:
                     result_contain = contain
 
-        if debug and result_contain is not None:
-            cv2.imshow(f"{os.path.basename(self.config.video_path)}-binary", binary)
-            cv2.imshow(f"{os.path.basename(self.config.video_path)}-image", background.back_image)
+        if debug:
+            cv2.imshow(f"{self.config.video_name}-binary", binary)
+            cv2.imshow(f"{self.config.video_name}-image", background.back_image)
             cv2.waitKey()
         return [result_contain] if result_contain is not None else []
 

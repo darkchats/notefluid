@@ -28,7 +28,7 @@ class VideoProgress:
         try:
             self.base_video.read()
             self.detect_background.read()
-            self.detect_contain.read(backgrounds=self.detect_background)
+            self.detect_contain.read(backgrounds=self.detect_background, debug=debug)
             self.detect_particle.read(backgrounds=self.detect_background, contains=self.detect_contain, debug=debug)
 
             self.analyse_track.read(contains=self.detect_contain, particles=self.detect_particle)

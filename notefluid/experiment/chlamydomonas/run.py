@@ -23,14 +23,11 @@ class MainProgress:
                 if not file.endswith('.avi'):
                     continue
                 ext_json = {"file": file}
-                if file not in ('11.23005.avi', '11.23006.avi', '150_11-3-01015', '150_11-3-01003'):
-                    # continue
-                    pass
 
                 video_split = global_config.get_result_path(video_path=os.path.join(root, file))
                 if video_split is None:
                     continue
-                if not video_split.video_name in ('150_11-3-01001', ''):
+                if not video_split.video_name in ('11.23001', '150_11-3-01015', '150_11-3-01003'):
                     continue
                 video_progress = VideoProgress(video_split=video_split)
                 result.append(video_progress.execute(ext_json=ext_json, debug=debug))
