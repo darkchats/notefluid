@@ -27,8 +27,13 @@ class MainProgress:
                 video_split = global_config.get_result_path(video_path=os.path.join(root, file))
                 if video_split is None:
                     continue
-                if not video_split.video_name in ('11.23001', '150_11-3-01015', '150_11-3-01003'):
+                if video_split.video_name not in (
+                        '11.23005',
+                        # '11.23006', '150_11-3-01015',
+                        # '150_11-3-01003',
+                        '8'):
                     continue
+                    pass
                 video_progress = VideoProgress(video_split=video_split)
                 result.append(video_progress.execute(ext_json=ext_json, debug=debug))
 
@@ -39,4 +44,3 @@ class MainProgress:
 
 global_config = GlobalConfig(path_root='/Volumes/ChenDisk/experiment')
 MainProgress(global_config).run(debug=False)
-# Main(path_root='/Users/chen/data/experiment').run()

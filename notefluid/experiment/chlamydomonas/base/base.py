@@ -91,10 +91,10 @@ def process_wrap(fun, config: VideoBase, desc='process'):
     for step in tqdm(range(1, config.frame_count + 5), desc=desc):
         res, image = camera.read()
         if not res:
-            camera.release()
             index += 1
             if index >= len(config.video_paths):
                 break
+            camera.release()
             camera = cv2.VideoCapture(config.video_paths[index])
             res, image = camera.read()
 

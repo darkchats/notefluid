@@ -1,7 +1,9 @@
+import os
 import pickle
 from typing import List
 
 import cv2
+import imageio
 import numpy as np
 import pandas as pd
 
@@ -105,10 +107,7 @@ class ParticleDetect(BaseCache):
             particles.append(particle)
         return particles
 
-    def _execute(self,
-                 backgrounds: BackGroundDetect,
-                 contains: ContainDetect,
-                 debug=False, *args, **kwargs):
+    def _execute(self, backgrounds: BackGroundDetect, contains: ContainDetect, debug=False, *args, **kwargs):
         def fun(step, image, ext_json):
             background = backgrounds.process_background_nearest(image)
             contain = contains.find_contain(background.uid)
@@ -123,6 +122,91 @@ class ParticleDetect(BaseCache):
             return len(self.particle_list)
 
         process_wrap(fun, self.config, desc='detect particle')
+
+    def save_gif(self, backgrounds: BackGroundDetect, contains: ContainDetect, start=0, end=10, debug=False, *args,
+                 **kwargs):
+
+        save_path = f'{self.config.cache_dir}/gifs'
+        if not os.path.exists(save_path):
+            os.mkdir(save_path)
+
+        images = []
+
+        def fun(step, image, ext_json):
+            if step < start or step > end:
+                return
+            background = backgrounds.process_background_nearest(image)
+            contain = contains.find_contain(background.uid)
+            particles = self.process_particle_image(background, contain, image, step, ext_json)
+            # cv2.circle(image, (int(contain.center[0]), int(contain.center[1])), int(contain.radius), (0, 255, 0), 2)
+            for particle in particles:
+                cv2.ellipse(image, (particle.center, particle.radius, particle.angle), (0, 255, 0), 2)
+
+            if debug:
+                cv2.imshow(f'{self.config.video_name}', image)
+                cv2.waitKey(delay=10)
+
+            if start < step <= end:
+                images.append(image)
+            if step == end:
+                imageio.mimsave(f'{save_path}/gif-{start}-{end}.gif',
+                                images, duration=0.8)
+                images.clear()
+
+            return len(self.particle_list)
+
+        process_wrap(fun, self.config, desc='save gif')
+
+    def save_image(self, backgrounds: BackGroundDetect, contains: ContainDetect, start=0, end=10, debug=False, *args,
+                   **kwargs):
+        save_path = f'{self.config.cache_dir}/images'
+        if not os.path.exists(save_path):
+            os.mkdir(save_path)
+
+        def fun(step, image, ext_json):
+            if step < start or step > end:
+                return
+            background = backgrounds.process_background_nearest(image)
+            contain = contains.find_contain(background.uid)
+            particles = self.process_particle_image(background, contain, image, step, ext_json)
+            for particle in particles:
+                cv2.ellipse(image, (particle.center, particle.radius, particle.angle), (0, 255, 0), 2)
+            if debug:
+                cv2.imshow(f'{self.config.video_name}', image)
+                cv2.waitKey(delay=10)
+            imageio.imsave(f'{save_path}/image-{step}.png', image)
+
+        process_wrap(fun, self.config, desc='save image')
+
+    def save_video(self, backgrounds: BackGroundDetect, contains: ContainDetect, start=0, end=10, debug=False, *args,
+                   **kwargs):
+        save_path = f'{self.config.cache_dir}/videos'
+        if not os.path.exists(save_path):
+            os.mkdir(save_path)
+
+        # 该参数是MPEG-4编码类型，文件名后缀为.avi
+        fourcc = cv2.VideoWriter_fourcc(*'XVID')
+        # 设置视频帧频
+        fps = 1000. / 60
+        # 设置视频大小
+        size = (self.config.video_width, self.config.video_height)
+        out = cv2.VideoWriter(f'{save_path}/video-{start}-{end}.avi', fourcc, fps, size)
+
+        def fun(step, image, ext_json):
+            if step < start or step > end:
+                return
+            background = backgrounds.process_background_nearest(image)
+            contain = contains.find_contain(background.uid)
+            particles = self.process_particle_image(background, contain, image, step, ext_json)
+            for particle in particles:
+                cv2.ellipse(image, (particle.center, particle.radius, particle.angle), (0, 255, 0), 2)
+            if debug:
+                cv2.imshow(f'{self.config.video_name}', image)
+                cv2.waitKey(delay=10)
+            out.write(image)
+
+        process_wrap(fun, self.config, desc='save video')
+        out.release()
 
     @property
     def particle_df(self):
