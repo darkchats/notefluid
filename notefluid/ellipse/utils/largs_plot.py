@@ -6,9 +6,7 @@ def largs_plot_speed(df):
     ax = plt.axes()
 
     def plot_larg(row):
-        ax.arrow(row['lx'], row['ly'], 100 * row['ux'], 100 * row['uy'], color='b',
-                 linewidth=0.5, head_width=0.5,
-                 head_length=0.5)
+        ax.arrow(row['lx'], row['ly'], row['ux'], row['uy'], color='b', linewidth=0.5, head_width=0.5, head_length=0.5)
 
     plt.plot(df['lx'], df['ly'], '-o')
     df.apply(plot_larg, axis=1)
