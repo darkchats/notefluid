@@ -16,6 +16,12 @@ class FlowBase:
         plt.axis([self.x_start, self.weight, self.y_start, self.height])
         plt.grid(True)
 
+    def figure(self):
+        if self.weight > self.height:
+            plt.figure(figsize=[16, self.height / self.weight * 16])
+        if self.weight < self.height:
+            plt.figure(figsize=[self.weight / self.height * 8, 8])
+
 
 class EllipseBase:
     def __init__(self, a=1, b=1):
@@ -34,7 +40,7 @@ class EllipseBase:
         theta = np.array([i / 100. * np.pi for i in range(201)])
         x = np.cos(self.theta) * self.a * np.cos(theta) - np.sin(self.theta) * self.b * np.sin(theta) + self.x0
         y = np.sin(self.theta) * self.a * np.cos(theta) + np.cos(self.theta) * self.b * np.sin(theta) + self.y0
-        plt.plot(y, x, color)
+        plt.plot(x, y, color)
         return x, y
 
 
@@ -67,23 +73,23 @@ class Track:
 
     def load_ellipse(self, df, debug=True):
         if debug:
-            plt.figure(figsize=[16, 4])
+            self.flow.figure()
             plt.ion()
 
-        def load_row(row):
+        def load_row(row, step=10):
             index = row['index']
             if index not in self.ellipse_list.keys():
                 print(f"{index} is not in {self.ellipse_list.keys()}")
             ellipse = self.ellipse_list[index]
             ellipse.update(row['x'], row['y'], row['theta'])
-            if debug:
+            if debug and row['step'] % step == 0:
                 plt.cla()
                 plt.title(f"step={row['step']}")
                 # plt.axis([0, 800, 0, 200])
                 self.flow.plot()
                 for ellipse in self.ellipse_list.values():
                     ellipse.plot(color='g')
-                plt.pause(0.2)
+                plt.pause(0.1)
 
         df.apply(lambda x: load_row(x), axis=1)
 

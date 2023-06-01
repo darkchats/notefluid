@@ -9,8 +9,8 @@ from notefluid.ellipse.track.track_plot import FlowBase, Track, EllipseBaseTrack
 def _load(path, index=0):
     df = pd.read_csv(path, sep='\s+', header=None)
     cols = [f"c{i}" for i in df.columns]
-    cols[0] = 'x'
-    cols[1] = 'y'
+    cols[0] = 'y'
+    cols[1] = 'x'
     cols[4] = 'theta'
     df.columns = cols
     df['theta'] = (df['theta'] + 0.5) * math.pi
@@ -23,10 +23,9 @@ dfs = [_load('/Users/chen/workspace/chenflow/flow230421/cmake-build-debug/orient
        _load('/Users/chen/workspace/chenflow/flow230421/cmake-build-debug/orientation1.dat', 1)]
 dfs = pd.concat(dfs)
 dfs = dfs.sort_values('step')
-print(dfs['x'].min(), dfs['x'].max())
-print(dfs['y'].min(), dfs['y'].max())
+
 track = Track()
-track.set_flow(FlowBase(100, 1000))
+track.set_flow(FlowBase(dfs['x'].max() + 10, dfs['y'].max() + 10))
 track.add_ellipse(0, EllipseBaseTrack(4, 8))
 track.add_ellipse(1, EllipseBaseTrack(4, 8))
 track.load_ellipse(dfs)
