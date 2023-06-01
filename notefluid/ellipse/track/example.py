@@ -3,7 +3,7 @@ import math
 import pandas as pd
 from matplotlib import pyplot as plt
 
-from notefluid.ellipse.track.track_plot import FlowBase, Track, EllipseBaseTrack
+from notefluid.ellipse.track.track_plot2 import FlowBase, Track, EllipseBaseTrack
 
 
 def _load(path, index=0):

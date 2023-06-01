@@ -35,11 +35,10 @@ class EllipseBase:
         self.y0 = y0
         self.theta = theta
 
-    def plot(self, color='g'):
-        theta = np.array([i / 100. * np.pi for i in range(201)])
-        x = np.cos(self.theta) * self.a * np.cos(theta) - np.sin(self.theta) * self.b * np.sin(theta) + self.x0
-        y = np.sin(self.theta) * self.a * np.cos(theta) + np.cos(self.theta) * self.b * np.sin(theta) + self.y0
-        plt.plot(x, y, color)
+    def plot_data(self, x0=0, y0=0, theta=0):
+        phi = np.array([i / 100. * np.pi for i in range(201)])
+        x = np.cos(theta) * self.a * np.cos(phi) - np.sin(theta) * self.b * np.sin(phi) + x0
+        y = np.sin(theta) * self.a * np.cos(phi) + np.cos(theta) * self.b * np.sin(phi) + y0
         return x, y
 
 
@@ -52,11 +51,8 @@ class EllipseBaseTrack(EllipseBase):
         self.track.append([x0, y0, theta])
         super().update(x0=x0, y0=y0, theta=theta)
 
-    def plot(self, color='g'):
-        super().plot(color=color)
-        track = np.array(self.track)
-        if len(track) > 1:
-            plt.plot(track[:, 0], track[:, 1], color)
+    def plot_data(self, x0=0, y0=0, theta=0, step=0):
+        return super().plot_data(self.track[step][0], self.track[step][1], self.track[step][2])
 
 
 class Track:
@@ -74,8 +70,10 @@ class Track:
         fig, ax = plt.subplots()
         lns = []
         for _ in self.ellipse_list:
-            ln, = plt.plot([], [], 'r-', animated=True)
-            lns.append(ln)
+            ln1, = plt.plot([], [], 'r-', animated=True)
+            ln2, = plt.plot([], [], 'r-', animated=True)
+            lns.append(ln1)
+            lns.append(ln2)
 
         def load_row(row):
             index = row['index']
@@ -88,16 +86,17 @@ class Track:
 
         def init():
             self.flow.figure(ax)
-            return lns[0], lns[1]
+            return *lns,
 
         def update(step):
             print(step)
             for i, ellipse in enumerate(self.ellipse_list.values()):
                 track = np.array(ellipse.track)
-                lns[i].set_data(track[:step, 0], track[:step, 1])
-            return lns[0], lns[1]
+                lns[2 * i].set_data(track[:step, 0], track[:step, 1])
+                lns[2 * i + 1].set_data(ellipse.plot_data(step=step))
+            return *lns,
 
-        ani = animation.FuncAnimation(fig, update, frames=[i for i in range(2, df['step'].max(), 10)], interval=10,
+        ani = animation.FuncAnimation(fig, update, frames=[i for i in range(2, df['step'].max() - 2, 10)], interval=10,
                                       init_func=init,
                                       blit=True, repeat=False)
         # plt.show()
