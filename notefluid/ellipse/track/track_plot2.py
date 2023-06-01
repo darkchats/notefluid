@@ -53,6 +53,8 @@ class EllipseBaseTrack(EllipseBase):
         super().update(x0=x0, y0=y0, theta=theta)
 
     def plot_data(self, x0=0, y0=0, theta=0, step=0):
+        if step >= len(self.track):
+            step = len(self.track) - 1
         return super().plot_data(self.track[step][0], self.track[step][1], self.track[step][2])
 
 
