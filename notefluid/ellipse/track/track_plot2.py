@@ -97,7 +97,7 @@ class Track:
                 lns[i].set_data(track[:step, 0], track[:step, 1])
             return lns[0], lns[1]
 
-        ani = animation.FuncAnimation(fig, update, frames=[i for i in range(2, df['step'].max())], interval=10,
+        ani = animation.FuncAnimation(fig, update, frames=[i for i in range(2, df['step'].max(), 10)], interval=10,
                                       init_func=init,
                                       blit=True, repeat=False)
         # plt.show()
