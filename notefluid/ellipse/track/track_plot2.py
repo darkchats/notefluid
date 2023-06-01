@@ -20,6 +20,7 @@ class FlowBase:
     def figure(self, ax):
         ax.set_xlim(0, self.weight)
         ax.set_ylim(0, self.height)
+        ax.set_aspect(1)
 
 
 class EllipseBase:
@@ -68,6 +69,7 @@ class Track:
 
     def load_ellipse(self, df, step=10, gif_path='a.gif'):
         fig, ax = plt.subplots()
+
         lns = []
         for _ in self.ellipse_list:
             ln1, = plt.plot([], [], 'r-', animated=True)
