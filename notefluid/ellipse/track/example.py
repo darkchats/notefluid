@@ -28,7 +28,7 @@ track = Track()
 track.set_flow(FlowBase(dfs['x'].max() + 10, dfs['y'].max() + 10))
 track.add_ellipse(0, EllipseBaseTrack(4, 8))
 track.add_ellipse(1, EllipseBaseTrack(4, 8))
-track.load_ellipse(dfs)
+track.load_ellipse(dfs, step=1)
 
 plt.pause(10)
 plt.show()
