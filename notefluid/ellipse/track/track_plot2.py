@@ -67,13 +67,14 @@ class Track:
     def add_ellipse(self, index, ellipse: EllipseBaseTrack):
         self.ellipse_list[index] = ellipse
 
-    def load_ellipse(self, df, step=10, gif_path='a.gif'):
+    def load_ellipse(self, df, step=10, gif_path='result.gif', colors=None, line_width=0.3):
         fig, ax = plt.subplots()
 
         lns = []
-        for _ in self.ellipse_list:
-            ln1, = plt.plot([], [], 'r-', animated=True)
-            ln2, = plt.plot([], [], 'r-', animated=True)
+        colors = colors or ['r', 'b', 'b', 'b', 'b', 'b']
+        for i, _ in enumerate(self.ellipse_list):
+            ln1, = plt.plot([], [], f'{colors[i]}-', linewidth=line_width, animated=True)
+            ln2, = plt.plot([], [], f'{colors[i]}-', linewidth=line_width, animated=True)
             lns.append(ln1)
             lns.append(ln2)
 
@@ -97,8 +98,9 @@ class Track:
                 lns[2 * i + 1].set_data(*ellipse.plot_data(step=step))
             return *lns,
 
-        ani = animation.FuncAnimation(fig, update, frames=[i for i in range(2, df['step'].max() - 2, 10)], interval=10,
+        ani = animation.FuncAnimation(fig, update, frames=[i for i in range(2, df['step'].max() - 2, step)],
+                                      interval=10,
                                       init_func=init,
                                       blit=True, repeat=False)
         plt.show()
-        ani.save("a.gif", writer='imagemagick')
+        ani.save(gif_path, writer='imagemagick')
