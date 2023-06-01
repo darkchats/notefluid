@@ -29,8 +29,9 @@ class MainProgress:
                     continue
                 if video_split.video_name not in (
                         '11.23005',
-                        # '11.23006', '150_11-3-01015',
-                        # '150_11-3-01003',
+                        '11.23006',
+                        '150_11-3-01015',
+                        '150_11-3-01003',
                         '8'):
                     continue
                     pass

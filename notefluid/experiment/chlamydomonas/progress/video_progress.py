@@ -34,8 +34,8 @@ class VideoProgress:
             # self.detect_particle.save_image(backgrounds=self.detect_background, contains=self.detect_contain,
             #                                 start=6337, end=6389,
             #                                 debug=debug)
-            self.detect_particle.save_gif(backgrounds=self.detect_background, contains=self.detect_contain,
-                                          start=6377, end=6389, debug=debug)
+            # self.detect_particle.save_gif(backgrounds=self.detect_background, contains=self.detect_contain,
+            #                              start=6377, end=6389, debug=debug)
             # self.detect_particle.save_video(backgrounds=self.detect_background, contains=self.detect_contain,
             #                                start=6300, end=6550, debug=debug)
 

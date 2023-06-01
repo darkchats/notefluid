@@ -1,86 +1,93 @@
 # -*- coding: utf-8 -*-
-import math
+from typing import Dict
 
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
-from tqdm import tqdm
 
 
-# scatter_plot()
-
-class Track:
-    def __init__(self, fiber1_path=None, fiber2_path=None):
-        self.fiber1_path = fiber1_path or '/Users/chen/workspace/chenflow/paricles/cmake-build-debug/orientation0.dat'
-        self.fiber2_path = fiber2_path or '/Users/chen/workspace/chenflow/paricles/cmake-build-debug/orientation1.dat'
-        self.fiber1 = None
-        self.fiber2 = None
-
-    def load(self):
-        def _load(path):
-            df = pd.read_csv(path, sep='\s+', header=None)
-            cols = [f"c{i}" for i in df.columns]
-            cols[0] = 'x'
-            cols[1] = 'y'
-            cols[4] = 'theta'
-            df.columns = cols
-            df['theta'] = (df['theta'] + 0.5) * math.pi
-            return df
-
-        self.fiber1 = _load(self.fiber1_path)
-        self.fiber2 = _load(self.fiber2_path)
-
-        print(self.fiber1)
-
-    def transform(self, x0, y0, a, b, phi):
-        theta = np.array([i / 100. * np.pi for i in range(201)])
-        x = np.cos(phi) * a * np.cos(theta) - np.sin(phi) * b * np.sin(theta) + x0
-        y = np.sin(phi) * a * np.cos(theta) + np.cos(phi) * b * np.sin(theta) + y0
-        return x, y
-
-    def step_plot(self, step):
-        # 打开交互模式
-
-        x1, y1 = self.transform(self.fiber1['x'][step], self.fiber1['y'][step], 10, 5, self.fiber1['theta'][step])
-        x2, y2 = self.transform(self.fiber2['x'][step], self.fiber2['y'][step], 10, 5, self.fiber2['theta'][step])
-
-        plt.plot(y1, x1, 'g')
-        plt.plot(y2, x2, 'r')
-
-        plt.plot(self.fiber1['y'][:step], self.fiber1['x'][:step], 'g')
-        plt.plot(self.fiber2['y'][:step], self.fiber2['x'][:step], 'r')
+class FlowBase:
+    def __init__(self, weight=800, height=200, x_start=0, y_start=0):
+        self.weight = weight
+        self.height = height
+        self.x_start = x_start
+        self.y_start = y_start
 
     def plot(self):
-        # 打开交互模式
+        plt.axis([self.x_start, self.weight, self.y_start, self.height])
+        plt.grid(True)
 
-        plt.figure(figsize=[16, 4])
-        plt.ion()
 
-        pbr = tqdm(range(500))
-        for step in pbr:
-            try:
-                bbb = 20
-                if (step * bbb > len(self.fiber1)):
-                    plt.pause(1000)
+class EllipseBase:
+    def __init__(self, a=1, b=1):
+        self.a = a
+        self.b = b
+        self.theta = 0
+        self.x0 = 0
+        self.y0 = 0
+
+    def update(self, x0=0, y0=0, theta=0):
+        self.x0 = x0
+        self.y0 = y0
+        self.theta = theta
+
+    def plot(self, color='g'):
+        theta = np.array([i / 100. * np.pi for i in range(201)])
+        x = np.cos(self.theta) * self.a * np.cos(theta) - np.sin(self.theta) * self.b * np.sin(theta) + self.x0
+        y = np.sin(self.theta) * self.a * np.cos(theta) + np.cos(self.theta) * self.b * np.sin(theta) + self.y0
+        plt.plot(y, x, color)
+        return x, y
+
+
+class EllipseBaseTrack(EllipseBase):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.track = []
+
+    def update(self, x0=0, y0=0, theta=0):
+        self.track.append([x0, y0, theta])
+        super().update(x0=x0, y0=y0, theta=theta)
+
+    def plot(self, color='g'):
+        super().plot(color=color)
+        track = np.array(self.track)
+        if len(track) > 1:
+            plt.plot(track[:, 0], track[:, 1], color)
+
+
+class Track:
+    def __init__(self, flow: FlowBase = None):
+        self.flow = flow
+        self.ellipse_list: Dict[int, EllipseBaseTrack] = {}
+
+    def set_flow(self, flow):
+        self.flow = flow
+
+    def add_ellipse(self, index, ellipse: EllipseBaseTrack):
+        self.ellipse_list[index] = ellipse
+
+    def load_ellipse(self, df, debug=True):
+        if debug:
+            plt.figure(figsize=[16, 4])
+            plt.ion()
+
+        def load_row(row):
+            index = row['index']
+            if index not in self.ellipse_list.keys():
+                print(f"{index} is not in {self.ellipse_list.keys()}")
+            ellipse = self.ellipse_list[index]
+            ellipse.update(row['x'], row['y'], row['theta'])
+            if debug:
                 plt.cla()
-                plt.title(f"step={step * 5 * bbb}")
-                plt.axis([0, 800, 0, 200])
-                plt.grid(True)
-
-                self.step_plot(step * bbb)
-
+                plt.title(f"step={row['step']}")
+                # plt.axis([0, 800, 0, 200])
+                self.flow.plot()
+                for ellipse in self.ellipse_list.values():
+                    ellipse.plot(color='g')
                 plt.pause(0.2)
-            except Exception as e:
-                break
 
-        plt.ioff()
-        plt.pause(2)
-        plt.show()
+        df.apply(lambda x: load_row(x), axis=1)
 
-    def run(self):
-        self.load()
-        self.plot()
-
-
-Track().run()
-plt.show()
+        if debug:
+            plt.ioff()
+            plt.pause(1)
+            plt.show()
