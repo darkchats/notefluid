@@ -89,7 +89,6 @@ class Track:
             return *lns,
 
         def update(step):
-            print(step)
             for i, ellipse in enumerate(self.ellipse_list.values()):
                 track = np.array(ellipse.track)
                 lns[2 * i].set_data(track[:step, 0], track[:step, 1])
@@ -99,5 +98,5 @@ class Track:
         ani = animation.FuncAnimation(fig, update, frames=[i for i in range(2, df['step'].max() - 2, 10)], interval=10,
                                       init_func=init,
                                       blit=True, repeat=False)
-        # plt.show()
+        plt.show()
         ani.save("a.gif", writer='imagemagick')
