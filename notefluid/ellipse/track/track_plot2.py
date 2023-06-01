@@ -93,7 +93,7 @@ class Track:
             for i, ellipse in enumerate(self.ellipse_list.values()):
                 track = np.array(ellipse.track)
                 lns[2 * i].set_data(track[:step, 0], track[:step, 1])
-                lns[2 * i + 1].set_data(ellipse.plot_data(step=step))
+                lns[2 * i + 1].set_data(*ellipse.plot_data(step=step))
             return *lns,
 
         ani = animation.FuncAnimation(fig, update, frames=[i for i in range(2, df['step'].max() - 2, 10)], interval=10,
