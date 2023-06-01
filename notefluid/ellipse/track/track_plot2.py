@@ -67,7 +67,7 @@ class Track:
     def add_ellipse(self, index, ellipse: EllipseBaseTrack):
         self.ellipse_list[index] = ellipse
 
-    def load_ellipse(self, df, step=10, gif_path='result.gif', colors=None, line_width=0.3):
+    def load_ellipse(self, df, step=10, gif_path='result.gif', colors=None, line_width=0.3, interval=10):
         fig, ax = plt.subplots()
 
         lns = []
