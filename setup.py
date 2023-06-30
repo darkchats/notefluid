@@ -4,10 +4,10 @@ from setuptools import find_packages, setup
 
 install_requires = ['numpy', 'scipy']
 
-setup(name='notefluid',
+setup(name='funfluid',
       version=time.strftime("%Y%m%d%H%M", time.localtime()),
-      description='notefluid',
-      author='niult',
+      description='funfluid',
+      author='bingtao',
       author_email='1007530194@qq.com',
       url='https://github.com/1007530194',
 
