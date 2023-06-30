@@ -164,7 +164,9 @@ class FlowTrack:
         self.lns[-1].set_text(f'step={step}')
         return self.lns
 
-    def plot(self, step=10, gif_path='./trak.gif'):
+    def plot(self,min_step=2,max_step=None, step=10, gif_path='./trak.gif'):
+        max_step=max_step or self.max_step
+
         fig, ax = plt.subplots()
 
         plt.grid(ls='--')
@@ -182,7 +184,7 @@ class FlowTrack:
         self.lns.append(plt.title('', fontsize=12))
         ani = animation.FuncAnimation(fig=fig,
                                       func=self.plot_update,
-                                      frames=[i for i in range(2, self.max_step, step)],
+                                      frames=[i for i in range(min_step, max_step, step)],
                                       interval=100,
                                       blit=False,
                                       repeat=False
