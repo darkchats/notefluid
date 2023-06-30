@@ -29,11 +29,8 @@ class EllipseTrack:
         self.df = df
         self.a = a
         self.b = b
-
         self.color = color
         self.marker = marker
-
-        # 圆心轨迹
         self.snapshot_steps = []
         self.lns = []
 
