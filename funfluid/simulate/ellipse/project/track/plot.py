@@ -8,19 +8,19 @@ import numpy as np
 
 
 class FlowBase:
-    def __init__(self, weight=800, height=200, x_start=0, y_start=0):
-        self.weight = weight
+    def __init__(self, width=800, height=200, x_start=0, y_start=0):
+        self.width = width
         self.height = height
         self.x_start = x_start
         self.y_start = y_start
 
     def plot(self):
-        plt.axis([self.x_start, self.weight, self.y_start, self.height])
+        plt.axis([self.x_start, self.width, self.y_start, self.height])
         plt.grid(True)
 
     def figure(self, ax):
-        ax.set_xlim(0, self.weight)
-        ax.set_ylim(0, self.height)
+        ax.set_xlim(self.x_start,self.x_start+ self.width)
+        ax.set_ylim(self.y_start,self.y_start+ self.height)
         ax.set_aspect(1)
 
 
