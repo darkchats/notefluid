@@ -114,7 +114,7 @@ class EllipseTrack:
         # ani.save("a.gif", writer='imagemagick')
 
 
-class Tracks:
+class FlowTrack:
     def __init__(self, flow: FlowBase = None):
         self.flow = flow
         self.ellipses: List[EllipseTrack] = []
