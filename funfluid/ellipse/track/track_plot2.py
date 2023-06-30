@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-from typing import Dict
+import math
+from typing import List
 
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
@@ -23,86 +24,164 @@ class FlowBase:
         ax.set_aspect(1)
 
 
-class EllipseBase:
-    def __init__(self, a=1, b=1):
+class EllipseTrack:
+    def __init__(self, df, a=10, b=5, transform=False, color=None, marker=None, *args, **kwargs):
+        self.df = df
         self.a = a
         self.b = b
-        self.theta = 0
-        self.x0 = 0
-        self.y0 = 0
+        if transform:
+            df['xx'] = df['x']
+            df['x'] = df['y']
+            df['y'] = df['xx']
+            df['theta'] = df['theta'] - math.pi / 2
 
-    def update(self, x0=0, y0=0, theta=0):
-        self.x0 = x0
-        self.y0 = y0
-        self.theta = theta
+        self.color = color
+        self.marker = marker
 
-    def plot_data(self, x0=0, y0=0, theta=0):
+        # 圆心轨迹
+        self.snapshot_steps = []
+        self.lns = []
+
+    @property
+    def min_x(self):
+        return self.df['x'].min()
+
+    @property
+    def max_x(self):
+        return self.df['x'].max()
+
+    @property
+    def min_y(self):
+        return self.df['y'].min()
+
+    @property
+    def max_y(self):
+        return self.df['y'].max()
+
+    @property
+    def max_step(self):
+        return self.df['step'].max()
+
+    def add_snapshot(self, step=0, color=None, marker=None):
+        self.snapshot_steps.append({
+            "step": step,
+            "color": color or self.color,
+            "marker": marker or self.marker
+        })
+
+    def plot_ref(self, color='b', line_width=0.3):
+        self.lns = []
+        self.lns.append(plt.plot([], [], color=self.color, marker=self.marker,
+                                 linewidth=line_width, alpha=0.8)[0])
+        self.lns.append(plt.plot([], [], color=self.color, marker=self.marker,
+                                 linewidth=line_width)[0])
+
+        for i, record in enumerate(self.snapshot_steps):
+            self.lns.append(plt.plot([], [], color=record['color'], marker=record['marker'], linewidth=line_width)[0])
+        return self.lns
+
+    def _get_ellipse_data(self, step):
+        x0 = self.df['x'][step]
+        y0 = self.df['y'][step]
+        theta = self.df['theta'][step]
         phi = np.array([i / 100. * np.pi for i in range(201)])
         x = np.cos(theta) * self.a * np.cos(phi) - np.sin(theta) * self.b * np.sin(phi) + x0
         y = np.sin(theta) * self.a * np.cos(phi) + np.cos(theta) * self.b * np.sin(phi) + y0
         return x, y
 
+    def plot_update(self, step):
+        self.lns[0].set_data(self.df['x'][:step], self.df['y'][:step])
+        self.lns[1].set_data(*self._get_ellipse_data(step=step))
 
-class EllipseBaseTrack(EllipseBase):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.track = []
+        for i, record in enumerate(self.snapshot_steps):
+            if record['step'] <= step:
+                self.lns[i + 2].set_data(*self._get_ellipse_data(record['step']))
 
-    def update(self, x0=0, y0=0, theta=0):
-        self.track.append([x0, y0, theta])
-        super().update(x0=x0, y0=y0, theta=theta)
+        return self.lns
 
-    def plot_data(self, x0=0, y0=0, theta=0, step=0):
-        if step >= len(self.track):
-            step = len(self.track) - 1
-        return super().plot_data(self.track[step][0], self.track[step][1], self.track[step][2])
+    def plot(self, step=10):
+        fig, ax = plt.subplots()
+        ax.set_xlim(0, 100)
+        ax.set_ylim(0, 1200)
+        ax.set_aspect(1)
+        self.plot_ref()
+        ani = animation.FuncAnimation(fig=fig,
+                                      func=self.plot_update,
+                                      frames=[i for i in range(2, self.df['step'].max() - 2, step)],
+                                      interval=100,
+                                      # init_func=self.plot_ref,
+                                      blit=True,
+                                      repeat=False
+                                      )
+
+        plt.show()
+        # ani.save("a.gif", writer='imagemagick')
 
 
-class Track:
+class Tracks:
     def __init__(self, flow: FlowBase = None):
         self.flow = flow
-        self.ellipse_list: Dict[int, EllipseBaseTrack] = {}
+        self.ellipses: List[EllipseTrack] = []
+        self.lns = []
 
     def set_flow(self, flow):
         self.flow = flow
 
-    def add_ellipse(self, index, ellipse: EllipseBaseTrack):
-        self.ellipse_list[index] = ellipse
+    @property
+    def max_x(self):
+        return max([ellipse.max_x for ellipse in self.ellipses])
 
-    def load_ellipse(self, df, step=10, gif_path='result.gif', colors=None, line_width=0.3, interval=10):
+    @property
+    def min_x(self):
+        return min([ellipse.min_x for ellipse in self.ellipses])
+
+    @property
+    def max_y(self):
+        return max([ellipse.max_y for ellipse in self.ellipses])
+
+    @property
+    def min_y(self):
+        return min([ellipse.min_y for ellipse in self.ellipses])
+
+    @property
+    def max_step(self):
+        steps = 100
+        for ellipse in self.ellipses:
+            steps = max(steps, ellipse.max_step)
+        return steps
+
+    def add_ellipse(self, ellipse: EllipseTrack):
+        self.ellipses.append(ellipse)
+
+    def plot_ref(self, ax):
+        self.flow.figure(ax)
+        for ellipse in self.ellipses:
+            self.lns.extend(ellipse.plot_ref())
+
+    def plot_update(self, step=10):
+        for ellipse in self.ellipses:
+            ellipse.plot_update(step=step)
+        self.lns[-1].set_text(f'step={step}')
+        return self.lns
+
+    def plot(self, step=10):
+        # fig = plt.figure()
+        # plt.grid(ls='--')
         fig, ax = plt.subplots()
+        ax.set_xlim(0, 100)
+        ax.set_ylim(0, 1200)
+        ax.set_aspect(1)
 
-        lns = []
-        colors = colors or ['r', 'b', 'b', 'b', 'b', 'b']
-        for i, _ in enumerate(self.ellipse_list):
-            ln1, = plt.plot([], [], f'{colors[i]}-', linewidth=line_width, animated=True)
-            ln2, = plt.plot([], [], f'{colors[i]}-', linewidth=line_width, animated=True)
-            lns.append(ln1)
-            lns.append(ln2)
+        self.plot_ref(ax)
+        print(self.lns)
+        self.lns.append(plt.title('', fontsize=12))
+        ani = animation.FuncAnimation(fig=fig,
+                                      func=self.plot_update,
+                                      frames=[i for i in range(2, self.max_step, step)],
+                                      interval=100,
+                                      blit=False,
+                                      repeat=False
+                                      )
 
-        def load_row(row):
-            index = row['index']
-            if index not in self.ellipse_list.keys():
-                print(f"{index} is not in {self.ellipse_list.keys()}")
-            ellipse = self.ellipse_list[index]
-            ellipse.update(row['x'], row['y'], row['theta'])
-
-        df.apply(lambda x: load_row(x), axis=1)
-
-        def init():
-            self.flow.figure(ax)
-            return *lns,
-
-        def update(step):
-            for i, ellipse in enumerate(self.ellipse_list.values()):
-                track = np.array(ellipse.track)
-                lns[2 * i].set_data(track[:step, 0], track[:step, 1])
-                lns[2 * i + 1].set_data(*ellipse.plot_data(step=step))
-            return *lns,
-
-        ani = animation.FuncAnimation(fig, update, frames=[i for i in range(2, df['step'].max() - 2, step)],
-                                      interval=10,
-                                      init_func=init,
-                                      blit=True, repeat=False)
         plt.show()
-        ani.save(gif_path, writer='imagemagick')
+        # ani.save("a.gif", writer='imagemagick')
