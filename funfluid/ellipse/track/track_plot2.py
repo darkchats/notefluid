@@ -25,15 +25,10 @@ class FlowBase:
 
 
 class EllipseTrack:
-    def __init__(self, df, a=10, b=5, transform=False, color=None, marker=None, *args, **kwargs):
+    def __init__(self, df, a=10, b=5, color=None, marker=None, *args, **kwargs):
         self.df = df
         self.a = a
         self.b = b
-        if transform:
-            df['xx'] = df['x']
-            df['x'] = df['y']
-            df['y'] = df['xx']
-            df['theta'] = df['theta'] - math.pi / 2
 
         self.color = color
         self.marker = marker
@@ -41,6 +36,12 @@ class EllipseTrack:
         # 圆心轨迹
         self.snapshot_steps = []
         self.lns = []
+
+    def transform(self):
+        self.df['xx'] = self.df['x']
+        self.df['x'] = self.df['y']
+        self.df['y'] = self.df['xx']
+        self.df['theta'] = self.df['theta'] - math.pi / 2
 
     @property
     def min_x(self):
@@ -69,12 +70,10 @@ class EllipseTrack:
             "marker": marker or self.marker
         })
 
-    def plot_ref(self, color='b', line_width=0.3):
+    def plot_ref(self, line_width=0.3):
         self.lns = []
-        self.lns.append(plt.plot([], [], color=self.color, marker=self.marker,
-                                 linewidth=line_width, alpha=0.8)[0])
-        self.lns.append(plt.plot([], [], color=self.color, marker=self.marker,
-                                 linewidth=line_width)[0])
+        self.lns.append(plt.plot([], [], color=self.color, marker=self.marker, linewidth=line_width, alpha=0.8)[0])
+        self.lns.append(plt.plot([], [], color=self.color, marker=self.marker, linewidth=line_width)[0])
 
         for i, record in enumerate(self.snapshot_steps):
             self.lns.append(plt.plot([], [], color=record['color'], marker=record['marker'], linewidth=line_width)[0])
@@ -127,6 +126,10 @@ class Tracks:
     def set_flow(self, flow):
         self.flow = flow
 
+    def transform(self):
+        for ellipse in self.ellipses:
+            ellipse.transform()
+
     @property
     def max_x(self):
         return max([ellipse.max_x for ellipse in self.ellipses])
@@ -164,13 +167,18 @@ class Tracks:
         self.lns[-1].set_text(f'step={step}')
         return self.lns
 
-    def plot(self, step=10):
-        # fig = plt.figure()
-        # plt.grid(ls='--')
+    def plot(self, step=10, gif_path='./trak.gif'):
         fig, ax = plt.subplots()
+
+        plt.grid(ls='--')
+        plt.xlabel(r'$x/L$')
+        plt.ylabel(r'$y/L$')
         ax.set_xlim(0, 100)
         ax.set_ylim(0, 1200)
         ax.set_aspect(1)
+        plt.tick_params(labelsize=11)
+        labels = ax.get_xticklabels() + ax.get_yticklabels()
+        [label.set_fontname('Times New Roman') for label in labels]
 
         self.plot_ref(ax)
         print(self.lns)
@@ -184,4 +192,4 @@ class Tracks:
                                       )
 
         plt.show()
-        # ani.save("a.gif", writer='imagemagick')
+        ani.save(gif_path, writer='imagemagick')
