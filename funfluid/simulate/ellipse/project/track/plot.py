@@ -7,7 +7,6 @@ import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from matplotlib.ticker import FuncFormatter
 
 
 def _load(path, index=0):
@@ -196,8 +195,8 @@ class FlowTrack:
 
         plt.grid(ls='--')
         font = {'fontfamily': 'Times New Roman', 'style': 'italic'}
-        plt.xlabel(r'x/L', **font)
-        plt.ylabel(r'y/L', **font)
+        plt.xlabel(r'x', **font)
+        plt.ylabel(r'y', **font)
         plt.tick_params(labelsize=11, direction='in')
 
         def scale_x(temp, position):
@@ -206,8 +205,8 @@ class FlowTrack:
         def scale_y(temp, position):
             return temp / scale - 0.5
 
-        ax.xaxis.set_major_formatter(FuncFormatter(scale_x))
-        ax.yaxis.set_major_formatter(FuncFormatter(scale_y))
+        # ax.xaxis.set_major_formatter(FuncFormatter(scale_x))
+        # ax.yaxis.set_major_formatter(FuncFormatter(scale_y))
 
         labels = ax.get_xticklabels() + ax.get_yticklabels()
         [label.set_fontname('Times New Roman') for label in labels]
