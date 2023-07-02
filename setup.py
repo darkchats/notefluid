@@ -2,7 +2,7 @@ import time
 
 from setuptools import find_packages, setup
 
-install_requires = ['numpy', 'scipy']
+install_requires = ['numpy', 'scipy','pandas','matplotlib']
 
 setup(name='funfluid',
       version=time.strftime("%Y%m%d%H%M", time.localtime()),
