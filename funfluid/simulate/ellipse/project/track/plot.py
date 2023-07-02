@@ -7,6 +7,7 @@ import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from matplotlib.ticker import FuncFormatter
 
 
 def _load(path, index=0):
@@ -23,7 +24,7 @@ def _load(path, index=0):
 
 
 class FlowBase:
-    def __init__(self, width=800, height=200, x_start=0, y_start=0):
+    def __init__(self, width=800, height=100, x_start=0, y_start=-0.5):
         self.width = width
         self.height = height
         self.x_start = x_start
@@ -116,7 +117,8 @@ class EllipseTrack:
         for i, record in enumerate(self.snapshot_steps):
             if record['step'] <= step:
                 self.lns[i + 2].set_data(*self._get_ellipse_data(record['step']))
-
+            else:
+                self.lns[i + 2].set_data([], [])
         return self.lns
 
     def plot(self, step=10):
@@ -188,7 +190,7 @@ class FlowTrack:
         self.lns[-1].set_text(title.replace("{step}", str(step)))
         return self.lns
 
-    def plot(self, min_step=2, max_step=None, step=10, title='', dpi=1000, gif_path='./trak.gif'):
+    def plot(self, min_step=2, scale=100., max_step=None, step=10, title='', dpi=1000, gif_path='./trak.gif'):
         max_step = max_step or self.max_step
         fig, ax = plt.subplots(figsize=(12, 2))
 
@@ -197,6 +199,15 @@ class FlowTrack:
         plt.xlabel(r'x/L', **font)
         plt.ylabel(r'y/L', **font)
         plt.tick_params(labelsize=11, direction='in')
+
+        def scale_x(temp, position):
+            return temp / scale
+
+        def scale_y(temp, position):
+            return temp / scale - 0.5
+
+        ax.xaxis.set_major_formatter(FuncFormatter(scale_x))
+        ax.yaxis.set_major_formatter(FuncFormatter(scale_y))
 
         labels = ax.get_xticklabels() + ax.get_yticklabels()
         [label.set_fontname('Times New Roman') for label in labels]
