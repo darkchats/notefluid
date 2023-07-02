@@ -31,7 +31,8 @@ class Project(BaseProject):
             # min_step=2, step=500,
             min_step=1000, step=50,
             # min_step=80000, step=1500, max_step=130000,
-            title=self.project_name + ',step={step}',
+            # title=self.project_name + ',step={step}',
+            title=r'$AR=0.2$',
             gif_path=f'{self.output_path()}/{self.project_name}-track.gif'
         )
 

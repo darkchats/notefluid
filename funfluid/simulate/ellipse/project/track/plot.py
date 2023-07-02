@@ -189,23 +189,21 @@ class FlowTrack:
         self.lns[-1].set_text(title.replace("{step}", str(step)))
         return self.lns
 
-    def plot(self, min_step=2, max_step=None, step=10, title='', gif_path='./trak.gif'):
+    def plot(self, min_step=2, max_step=None, step=10, title='', dpi=1000, gif_path='./trak.gif'):
         max_step = max_step or self.max_step
-
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(figsize=(12, 2))
 
         plt.grid(ls='--')
-        plt.xlabel(r'$x/L$')
-        plt.ylabel(r'$y/L$')
-        ax.set_xlim(0, 100)
-        ax.set_ylim(0, 1200)
-        ax.set_aspect(1)
-        plt.tick_params(labelsize=11)
+        font = {'fontfamily': 'Times New Roman', 'style': 'italic'}
+        plt.xlabel(r'x/L', **font)
+        plt.ylabel(r'y/L', **font)
+        plt.tick_params(labelsize=11, direction='in')
+
         labels = ax.get_xticklabels() + ax.get_yticklabels()
         [label.set_fontname('Times New Roman') for label in labels]
 
         self.plot_ref(ax)
-        self.lns.append(plt.title('', fontsize=12))
+        self.lns.append(plt.title('', fontsize=12, **font))
 
         ani = animation.FuncAnimation(fig=fig,
                                       # func=self.plot_update,
@@ -217,5 +215,7 @@ class FlowTrack:
                                       )
         plt.show()
         savefig_kwargs = {"bbox_inches": "tight"}
-        ani.save(gif_path, writer='imagemagick', savefig_kwargs=savefig_kwargs)
-        fig.savefig(gif_path.replace('gif', 'png'))
+        ani.save(gif_path, writer='imagemagick',
+                 # dpi=1000,
+                 savefig_kwargs=savefig_kwargs)
+        fig.savefig(gif_path.replace('gif', 'png'), dpi=1000)
