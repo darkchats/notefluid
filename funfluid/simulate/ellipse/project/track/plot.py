@@ -40,7 +40,7 @@ class FlowBase:
 
 
 class EllipseTrack:
-    def __init__(self, df, a=10, b=5, color=None, marker=None,line_width=1, *args, **kwargs):
+    def __init__(self, df, a=10, b=5, color=None, marker=None, line_width=1, *args, **kwargs):
         if isinstance(df, str):
             self.df = _load(df)
         else:
@@ -50,7 +50,7 @@ class EllipseTrack:
         self.b = b
         self.color = color
         self.marker = marker
-        self.line_width=line_width
+        self.line_width = line_width
         self.snapshot_steps = []
         self.lns = []
 
@@ -80,12 +80,12 @@ class EllipseTrack:
     def max_step(self):
         return self.df['step'].max()
 
-    def add_snapshot(self, step=0, color=None, marker=None,line_width=None):
+    def add_snapshot(self, step=0, color=None, marker=None, line_width=None):
         self.snapshot_steps.append({
             "step": step,
             "color": color or self.color,
             "marker": marker or self.marker,
-            "line_width":line_width or self.line_width
+            "line_width": line_width or self.line_width
         })
 
     def plot_ref(self):
@@ -94,16 +94,19 @@ class EllipseTrack:
         self.lns.append(plt.plot([], [], color=self.color, marker=self.marker, linewidth=self.line_width)[0])
 
         for i, record in enumerate(self.snapshot_steps):
-            self.lns.append(plt.plot([], [], color=record['color'], marker=record['marker'], linewidth=record['line_width'])[0])
+            self.lns.append(
+                plt.plot([], [], color=record['color'], marker=record['marker'], linewidth=record['line_width'])[0])
         return self.lns
 
     def _get_ellipse_data(self, step):
         x0 = self.df['x'][step]
         y0 = self.df['y'][step]
         theta = self.df['theta'][step]
-        phi = np.array([i / 100. * np.pi for i in range(201)])
+        phi = np.array([i / 100. * np.pi for i in range(-1, 201)])
         x = np.cos(theta) * self.a * np.cos(phi) - np.sin(theta) * self.b * np.sin(phi) + x0
         y = np.sin(theta) * self.a * np.cos(phi) + np.cos(theta) * self.b * np.sin(phi) + y0
+        x[0] = x0
+        y[0] = y0
         return x, y
 
     def plot_update(self, step):
@@ -213,6 +216,6 @@ class FlowTrack:
                                       repeat=False
                                       )
         plt.show()
-        ani.save(gif_path, writer='imagemagick',savefig_kwargs={
-            "bbox_inches" :"tight"
-        })
+        savefig_kwargs = {"bbox_inches": "tight"}
+        ani.save(gif_path, writer='imagemagick', savefig_kwargs=savefig_kwargs)
+        fig.savefig(gif_path.replace('gif', 'png'))

@@ -10,31 +10,30 @@ class Project(BaseProject):
         track = FlowTrack()
         for index, file in enumerate(self.orientation_files):
             if index == 0:
-                ellipse = EllipseTrack(a=10, b=6, df=self._load(file, 0), color='r')
+                ellipse = EllipseTrack(a=10, b=10, df=self._load(file, 0), color='r')
             elif index == 1:
-                ellipse = EllipseTrack(a=10, b=6, df=self._load(file, 0), color='b')
+                ellipse = EllipseTrack(a=10, b=10, df=self._load(file, 0), color='b')
             else:
                 continue
 
-                # ellipse.add_snapshot(step=100)
+            ellipse.add_snapshot(step=100)
+            ellipse.add_snapshot(step=4000)
             # ellipse.add_snapshot(step=1100)
             track.add_ellipse(ellipse)
 
             # track.transform()
 
             # track.set_flow(FlowBase(100, min(track.max_y, 1200) + 10, x_start=min(track.min_x - 10, 0)))
-        #track.set_flow(FlowBase(min(track.max_x, 120000) + 10, 100, x_start=min(track.min_x - 10, 0)))
-        track.set_flow(FlowBase(400, 100, x_start=1400))
+        # track.set_flow(FlowBase(min(track.max_x, 120000) + 10, 100, x_start=min(track.min_x - 10, 0)))
+        track.set_flow(FlowBase(1250, 100, x_start=1000))
 
         track.plot(
-            #min_step=2, step=500,
-            min_step=0, step=50,
-            #min_step=80000, step=1500, max_step=130000,
+            # min_step=2, step=500,
+            min_step=1000, step=50,
+            # min_step=80000, step=1500, max_step=130000,
             title=self.project_name + ',step={step}',
             gif_path=f'{self.output_path()}/{self.project_name}-track.gif'
         )
 
 
-
-
-Project("/Users/chen/workspace/chenflow/0607_double_0.2/cmake-build-debug").analyse_track()
+Project("/Users/chen/workspace/chenflow/0606_doulbe/cmake-build-debug").analyse_track()
