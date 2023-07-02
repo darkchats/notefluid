@@ -185,7 +185,6 @@ class FlowTrack:
     def plot_update(self, step=10, title='', *args, **kwargs):
         for ellipse in self.ellipses:
             ellipse.plot_update(step=step)
-        # self.lns[-1].set_text(f'step={step}')
         self.lns[-1].set_text(title.replace("{step}", str(step)))
         return self.lns
 
