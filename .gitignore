@@ -115,3 +115,5 @@ dmypy.json
 .pyre/
 .idea
 cache_dir
+
+*/__pycache__/*
