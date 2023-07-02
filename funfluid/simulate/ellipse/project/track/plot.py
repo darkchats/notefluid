@@ -5,6 +5,20 @@ from typing import List
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+
+
+def _load(path, index=0):
+    df = pd.read_csv(path, sep='\s+', header=None)
+    cols = [f"c{i}" for i in df.columns]
+    cols[0] = 'x'
+    cols[1] = 'y'
+    cols[4] = 'theta'
+    df.columns = cols
+    df['theta'] = (df['theta']) * math.pi
+    df = df.reset_index(names='step')
+    df['index'] = index
+    return df
 
 
 class FlowBase:
@@ -19,14 +33,18 @@ class FlowBase:
         plt.grid(True)
 
     def figure(self, ax):
-        ax.set_xlim(self.x_start,self.x_start+ self.width)
-        ax.set_ylim(self.y_start,self.y_start+ self.height)
+        ax.set_xlim(self.x_start, self.x_start + self.width)
+        ax.set_ylim(self.y_start, self.y_start + self.height)
         ax.set_aspect(1)
 
 
 class EllipseTrack:
     def __init__(self, df, a=10, b=5, color=None, marker=None, *args, **kwargs):
-        self.df = df
+        if isinstance(df, str):
+            self.df = _load(path=df)
+        else:
+            self.df = df
+
         self.a = a
         self.b = b
         self.color = color
@@ -164,8 +182,8 @@ class FlowTrack:
         self.lns[-1].set_text(f'step={step}')
         return self.lns
 
-    def plot(self,min_step=2,max_step=None, step=10, gif_path='./trak.gif'):
-        max_step=max_step or self.max_step
+    def plot(self, min_step=2, max_step=None, step=10, gif_path='./trak.gif'):
+        max_step = max_step or self.max_step
 
         fig, ax = plt.subplots()
 
