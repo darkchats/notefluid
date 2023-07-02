@@ -211,4 +211,6 @@ class FlowTrack:
                                       repeat=False
                                       )
         plt.show()
-        ani.save(gif_path, writer='imagemagick')
+        ani.save(gif_path, writer='imagemagick',savefig_kwargs={
+            "bbox_inches" :"tight"
+        })
