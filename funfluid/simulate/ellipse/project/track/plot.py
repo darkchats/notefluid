@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import math
+from functools import partial
 from typing import List
 
 import matplotlib.animation as animation
@@ -41,7 +42,7 @@ class FlowBase:
 class EllipseTrack:
     def __init__(self, df, a=10, b=5, color=None, marker=None, *args, **kwargs):
         if isinstance(df, str):
-            self.df = _load(path=df)
+            self.df = _load(df)
         else:
             self.df = df
 
@@ -176,13 +177,14 @@ class FlowTrack:
         for ellipse in self.ellipses:
             self.lns.extend(ellipse.plot_ref())
 
-    def plot_update(self, step=10):
+    def plot_update(self, step=10, title='', *args, **kwargs):
         for ellipse in self.ellipses:
             ellipse.plot_update(step=step)
-        self.lns[-1].set_text(f'step={step}')
+        # self.lns[-1].set_text(f'step={step}')
+        self.lns[-1].set_text(title.replace("{step}", str(step)))
         return self.lns
 
-    def plot(self, min_step=2, max_step=None, step=10, gif_path='./trak.gif'):
+    def plot(self, min_step=2, max_step=None, step=10, title='', gif_path='./trak.gif'):
         max_step = max_step or self.max_step
 
         fig, ax = plt.subplots()
@@ -198,15 +200,15 @@ class FlowTrack:
         [label.set_fontname('Times New Roman') for label in labels]
 
         self.plot_ref(ax)
-        print(self.lns)
         self.lns.append(plt.title('', fontsize=12))
+
         ani = animation.FuncAnimation(fig=fig,
-                                      func=self.plot_update,
+                                      # func=self.plot_update,
+                                      func=partial(self.plot_update, title=title),
                                       frames=[i for i in range(min_step, max_step, step)],
                                       interval=100,
                                       blit=False,
                                       repeat=False
                                       )
-
         plt.show()
         ani.save(gif_path, writer='imagemagick')
