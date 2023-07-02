@@ -40,7 +40,7 @@ class FlowBase:
 
 
 class EllipseTrack:
-    def __init__(self, df, a=10, b=5, color=None, marker=None, *args, **kwargs):
+    def __init__(self, df, a=10, b=5, color=None, marker=None,line_width=1, *args, **kwargs):
         if isinstance(df, str):
             self.df = _load(df)
         else:
@@ -50,6 +50,7 @@ class EllipseTrack:
         self.b = b
         self.color = color
         self.marker = marker
+        self.line_width=line_width
         self.snapshot_steps = []
         self.lns = []
 
@@ -79,20 +80,21 @@ class EllipseTrack:
     def max_step(self):
         return self.df['step'].max()
 
-    def add_snapshot(self, step=0, color=None, marker=None):
+    def add_snapshot(self, step=0, color=None, marker=None,line_width=None):
         self.snapshot_steps.append({
             "step": step,
             "color": color or self.color,
-            "marker": marker or self.marker
+            "marker": marker or self.marker,
+            "line_width":line_width or self.line_width
         })
 
-    def plot_ref(self, line_width=0.3):
+    def plot_ref(self):
         self.lns = []
-        self.lns.append(plt.plot([], [], color=self.color, marker=self.marker, linewidth=line_width, alpha=0.8)[0])
-        self.lns.append(plt.plot([], [], color=self.color, marker=self.marker, linewidth=line_width)[0])
+        self.lns.append(plt.plot([], [], color=self.color, marker=self.marker, linewidth=self.line_width, alpha=0.8)[0])
+        self.lns.append(plt.plot([], [], color=self.color, marker=self.marker, linewidth=self.line_width)[0])
 
         for i, record in enumerate(self.snapshot_steps):
-            self.lns.append(plt.plot([], [], color=record['color'], marker=record['marker'], linewidth=line_width)[0])
+            self.lns.append(plt.plot([], [], color=record['color'], marker=record['marker'], linewidth=record['line_width'])[0])
         return self.lns
 
     def _get_ellipse_data(self, step):
