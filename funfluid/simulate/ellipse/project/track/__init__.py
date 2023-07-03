@@ -1,1 +1,1 @@
-from .plot import FlowBase,EllipseTrack,FlowTrack
+from .plot import Canvas,EllipseTrack,FlowTrack
