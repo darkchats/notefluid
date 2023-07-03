@@ -101,13 +101,13 @@ class EllipseTrack:
         return self.lns
 
     def _get_ellipse_data(self, step, canvas: Canvas):
-        x0 = self.df['x'][step]
-        y0 = self.df['y'][step]
+        a, b = self.a, self.b
+        x0, y0 = self.df['x'][step], self.df['y'][step]
         theta = self.df['theta'][step]
         phi = np.array([i / 100. * np.pi for i in range(-1, 201)])
-        x = np.cos(theta) * self.a * np.cos(phi) - np.sin(theta) * self.b * np.sin(phi) + x0
-        y = np.sin(theta) * self.a * np.cos(phi) + np.cos(theta) * self.b * np.sin(phi) + y0
-        y = y * canvas.aspect
+        x = x0 + np.cos(theta) * a * np.cos(phi) - np.sin(theta) * b * np.sin(phi)
+        y = y0 + (np.sin(theta) * a * np.cos(phi) + np.cos(theta) * b * np.sin(phi)) * canvas.aspect
+
         x[0] = x0
         y[0] = y0
         return x, y
