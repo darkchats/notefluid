@@ -125,9 +125,6 @@ class EllipseTrack:
 
     def plot(self, canvas: Canvas = None, step=10):
         fig, ax = plt.subplots()
-        ax.set_xlim(0, 100)
-        ax.set_ylim(0, 1200)
-        ax.set_aspect(1)
         self.plot_ref()
         ani = animation.FuncAnimation(fig=fig,
                                       func=self.plot_update,
@@ -193,7 +190,7 @@ class FlowTrack:
 
     def plot(self, min_step=2, max_step=None, step=10, title='', dpi=1000, gif_path='./trak.gif'):
         max_step = max_step or self.max_step
-        fig, ax = plt.subplots(figsize=(12, 2))
+        fig, ax = plt.subplots(figsize=(12, 6))
 
         plt.grid(ls='--')
         font = {'fontfamily': 'Times New Roman', 'style': 'italic'}
