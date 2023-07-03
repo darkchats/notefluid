@@ -22,12 +22,14 @@ def _load(path, index=0):
     return df
 
 
-class FlowBase:
-    def __init__(self, width=800, height=100, x_start=0, y_start=-0.5):
+class Canvas:
+    def __init__(self, width=800, height=100, x_start=0, y_start=-0.5, aspect=1, scale=1):
         self.width = width
         self.height = height
         self.x_start = x_start
         self.y_start = y_start
+        self.aspect = aspect
+        self.scale = scale
 
     def plot(self):
         plt.axis([self.x_start, self.width, self.y_start, self.height])
@@ -36,7 +38,7 @@ class FlowBase:
     def figure(self, ax):
         ax.set_xlim(self.x_start, self.x_start + self.width)
         ax.set_ylim(self.y_start, self.y_start + self.height)
-        ax.set_aspect(1)
+        ax.set_aspect(self.aspect)
 
 
 class EllipseTrack:
@@ -88,7 +90,7 @@ class EllipseTrack:
             "line_width": line_width or self.line_width
         })
 
-    def plot_ref(self):
+    def plot_ref(self, canvas: Canvas):
         self.lns = []
         self.lns.append(plt.plot([], [], color=self.color, marker=self.marker, linewidth=self.line_width, alpha=0.8)[0])
         self.lns.append(plt.plot([], [], color=self.color, marker=self.marker, linewidth=self.line_width)[0])
@@ -98,29 +100,30 @@ class EllipseTrack:
                 plt.plot([], [], color=record['color'], marker=record['marker'], linewidth=record['line_width'])[0])
         return self.lns
 
-    def _get_ellipse_data(self, step):
+    def _get_ellipse_data(self, step, canvas: Canvas):
         x0 = self.df['x'][step]
         y0 = self.df['y'][step]
         theta = self.df['theta'][step]
         phi = np.array([i / 100. * np.pi for i in range(-1, 201)])
         x = np.cos(theta) * self.a * np.cos(phi) - np.sin(theta) * self.b * np.sin(phi) + x0
         y = np.sin(theta) * self.a * np.cos(phi) + np.cos(theta) * self.b * np.sin(phi) + y0
+        y = y * canvas.aspect
         x[0] = x0
         y[0] = y0
         return x, y
 
-    def plot_update(self, step):
+    def plot_update(self, step, canvas: Canvas):
         self.lns[0].set_data(self.df['x'][:step], self.df['y'][:step])
-        self.lns[1].set_data(*self._get_ellipse_data(step=step))
+        self.lns[1].set_data(*self._get_ellipse_data(step=step, canvas=canvas))
 
         for i, record in enumerate(self.snapshot_steps):
             if record['step'] <= step:
-                self.lns[i + 2].set_data(*self._get_ellipse_data(record['step']))
+                self.lns[i + 2].set_data(*self._get_ellipse_data(record['step'], canvas=canvas))
             else:
                 self.lns[i + 2].set_data([], [])
         return self.lns
 
-    def plot(self, step=10):
+    def plot(self, canvas: Canvas = None, step=10):
         fig, ax = plt.subplots()
         ax.set_xlim(0, 100)
         ax.set_ylim(0, 1200)
@@ -134,19 +137,18 @@ class EllipseTrack:
                                       blit=True,
                                       repeat=False
                                       )
-
         plt.show()
         # ani.save("a.gif", writer='imagemagick')
 
 
 class FlowTrack:
-    def __init__(self, flow: FlowBase = None):
-        self.flow = flow
+    def __init__(self, canvas: Canvas = None):
+        self.canvas = canvas
         self.ellipses: List[EllipseTrack] = []
         self.lns = []
 
-    def set_flow(self, flow):
-        self.flow = flow
+    def set_canvas(self, canvas):
+        self.canvas = canvas
 
     def transform(self):
         for ellipse in self.ellipses:
@@ -179,17 +181,17 @@ class FlowTrack:
         self.ellipses.append(ellipse)
 
     def plot_ref(self, ax):
-        self.flow.figure(ax)
+        self.canvas.figure(ax)
         for ellipse in self.ellipses:
-            self.lns.extend(ellipse.plot_ref())
+            self.lns.extend(ellipse.plot_ref(self.canvas))
 
     def plot_update(self, step=10, title='', *args, **kwargs):
         for ellipse in self.ellipses:
-            ellipse.plot_update(step=step)
+            ellipse.plot_update(step=step, canvas=self.canvas)
         self.lns[-1].set_text(title.replace("{step}", str(step)))
         return self.lns
 
-    def plot(self, min_step=2, scale=100., max_step=None, step=10, title='', dpi=1000, gif_path='./trak.gif'):
+    def plot(self, min_step=2, max_step=None, step=10, title='', dpi=1000, gif_path='./trak.gif'):
         max_step = max_step or self.max_step
         fig, ax = plt.subplots(figsize=(12, 2))
 
@@ -200,10 +202,10 @@ class FlowTrack:
         plt.tick_params(labelsize=11, direction='in')
 
         def scale_x(temp, position):
-            return temp / scale
+            return temp / self.canvas.scale
 
         def scale_y(temp, position):
-            return temp / scale - 0.5
+            return temp / self.canvas.scale - 0.5
 
         # ax.xaxis.set_major_formatter(FuncFormatter(scale_x))
         # ax.yaxis.set_major_formatter(FuncFormatter(scale_y))
