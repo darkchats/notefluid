@@ -106,7 +106,7 @@ class EllipseTrack:
         theta = self.df['theta'][step]
         phi = np.array([i / 100. * np.pi for i in range(-1, 201)])
         x = x0 + np.cos(theta) * a * np.cos(phi) - np.sin(theta) * b * np.sin(phi)
-        y = y0 + (np.sin(theta) * a * np.cos(phi) + np.cos(theta) * b * np.sin(phi)) * canvas.aspect
+        y = y0 + (np.sin(theta) * a * np.cos(phi) + np.cos(theta) * b * np.sin(phi)) / canvas.aspect
 
         x[0] = x0
         y[0] = y0
