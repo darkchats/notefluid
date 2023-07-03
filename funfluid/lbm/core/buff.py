@@ -1,5 +1,6 @@
 import math
 
+
 import numpy as np
 
 
@@ -21,6 +22,7 @@ class Buff:
         self.obs_cv = False
 
     # Add a value to the buffer
+
     def add(self, value):
         self.buff = np.append(self.buff, value)
         self.it += 1
