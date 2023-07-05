@@ -9,14 +9,17 @@ class BaseProject:
         self.path = path
 
     @staticmethod
-    def _load(path, index=0):
+    def _load(path, index=0, type=1):
         df = pd.read_csv(path, sep='\s+', header=None)
         cols = [f"c{i}" for i in df.columns]
         cols[0] = 'x'
         cols[1] = 'y'
         cols[4] = 'theta'
         df.columns = cols
-        df['theta'] = (df['theta']) * math.pi / 180.
+        if type == 1:
+            df['theta'] = (df['theta']) * math.pi / 180.
+        else:
+            df['theta'] = (df['theta']) * math.pi
         df = df.reset_index(names='step')
         df['index'] = index
         return df

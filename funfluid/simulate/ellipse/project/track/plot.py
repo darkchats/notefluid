@@ -100,7 +100,7 @@ class EllipseTrack:
                 plt.plot([], [], color=record['color'], marker=record['marker'], linewidth=record['line_width'])[0])
         return self.lns
 
-    def _get_ellipse_data(self, step, canvas: Canvas):
+    def _get_ellipse_data(self, step, canvas: Canvas, *args, **kwargs):
         a, b = self.a, self.b
         x0, y0 = self.df['x'][step], self.df['y'][step]
         theta = self.df['theta'][step]
@@ -174,7 +174,7 @@ class FlowTrack:
             steps = max(steps, ellipse.max_step)
         return steps
 
-    def add_ellipse(self, ellipse: EllipseTrack):
+    def add_ellipse(self, ellipse: EllipseTrack, *args, **kwargs):
         self.ellipses.append(ellipse)
 
     def plot_ref(self, ax):
