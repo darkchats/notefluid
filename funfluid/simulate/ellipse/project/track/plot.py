@@ -105,8 +105,9 @@ class EllipseTrack:
 
     def _get_ellipse_data(self, step, canvas: Canvas, *args, **kwargs):
         a, b = self.a, self.b
-        x0, y0 = self.df['x'][step], self.df['y'][step]
-        theta = self.df['theta'][step]
+        tmp_df = self.df[self.df['step'] == step]
+        x0, y0 = tmp_df['x'][0], tmp_df['y'][0]
+        theta = tmp_df['theta'][0]
         phi = np.array([i / 100. * np.pi for i in range(-1, 201)])
         x = x0 + np.cos(theta) * a * np.cos(phi) - np.sin(theta) * b * np.sin(phi)
         y = y0 + (np.sin(theta) * a * np.cos(phi) + np.cos(theta) * b * np.sin(phi)) / canvas.aspect
@@ -116,7 +117,8 @@ class EllipseTrack:
         return x, y
 
     def plot_update(self, step, canvas: Canvas):
-        self.lns[0].set_data(self.df['x'][:step], self.df['y'][:step])
+        tmp_df = self.df[self.df['step'] <= step]
+        self.lns[0].set_data(tmp_df['x'], tmp_df['y'])
         self.lns[1].set_data(*self._get_ellipse_data(step=step, canvas=canvas))
 
         for i, record in enumerate(self.snapshot_steps):
