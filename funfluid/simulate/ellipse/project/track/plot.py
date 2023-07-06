@@ -82,6 +82,10 @@ class EllipseTrack:
         return self.df['y'].max()
 
     @property
+    def min_step(self):
+        return self.df['step'].min()
+
+    @property
     def max_step(self):
         return self.df['step'].max()
 
@@ -105,7 +109,7 @@ class EllipseTrack:
 
     def _get_ellipse_data(self, step, canvas: Canvas, *args, **kwargs):
         a, b = self.a, self.b
-        tmp_df = self.df[self.df['step'] == step]
+        tmp_df = self.df[self.df['step'] <= step].tail(1).reset_index(drop=True)
         x0, y0 = tmp_df['x'][0], tmp_df['y'][0]
         theta = tmp_df['theta'][0]
         phi = np.array([i / 100. * np.pi for i in range(-1, 201)])
@@ -173,11 +177,12 @@ class FlowTrack:
         return min([ellipse.min_y for ellipse in self.ellipses])
 
     @property
+    def min_step(self):
+        return min([ellipse.min_step for ellipse in self.ellipses])
+
+    @property
     def max_step(self):
-        steps = 100
-        for ellipse in self.ellipses:
-            steps = max(steps, ellipse.max_step)
-        return steps
+        return max([ellipse.max_step for ellipse in self.ellipses])
 
     def add_ellipse(self, ellipse: EllipseTrack, *args, **kwargs):
         self.ellipses.append(ellipse)
@@ -194,6 +199,7 @@ class FlowTrack:
         return self.lns
 
     def plot(self, min_step=2, max_step=None, step=10, title='', dpi=1000, gif_path='./trak.gif'):
+        min_step = max(min_step or self.min_step, self.min_step)
         max_step = min(max_step or self.max_step, self.max_step)
         fig, ax = plt.subplots(figsize=(12, 6))
 
