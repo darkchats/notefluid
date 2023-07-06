@@ -15,6 +15,7 @@ class BaseProject:
         cols[0] = 'x'
         cols[1] = 'y'
         cols[4] = 'theta'
+        cols[11] = 'step'
         df.columns = cols
         if type == 1:
             df['theta'] = (df['theta']) * math.pi / 180.

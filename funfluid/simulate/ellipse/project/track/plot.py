@@ -15,9 +15,11 @@ def _load(path, index=0):
     cols[0] = 'x'
     cols[1] = 'y'
     cols[4] = 'theta'
+    cols[11] = 'step'
     df.columns = cols
     df['theta'] = (df['theta']) * math.pi
-    df = df.reset_index(names='step')
+    # df = df.reset_index(names='step')
+
     df['index'] = index
     return df
 
