@@ -21,7 +21,7 @@ class BaseProject:
             df['theta'] = (df['theta']) * math.pi / 180.
         else:
             df['theta'] = (df['theta']) * math.pi
-        df = df.reset_index(names='step')
+        # df = df.reset_index(names='step')
         df['index'] = index
         return df
 
