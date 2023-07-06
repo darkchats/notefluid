@@ -22,6 +22,7 @@ class BaseProject:
         else:
             df['theta'] = (df['theta']) * math.pi
         # df = df.reset_index(names='step')
+        df['step'] = df['step'].astype('int')
         df['index'] = index
         return df
 
