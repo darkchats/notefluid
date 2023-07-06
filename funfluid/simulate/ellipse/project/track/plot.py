@@ -192,7 +192,7 @@ class FlowTrack:
         return self.lns
 
     def plot(self, min_step=2, max_step=None, step=10, title='', dpi=1000, gif_path='./trak.gif'):
-        max_step = max_step or self.max_step
+        max_step = min(max_step or self.max_step, self.max_step)
         fig, ax = plt.subplots(figsize=(12, 6))
 
         plt.grid(ls='--')
