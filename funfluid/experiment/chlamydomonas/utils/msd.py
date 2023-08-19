@@ -6,7 +6,7 @@ import numpy as np
 
 
 def cul_msd(df, col_time='t', col_x='x', col_y='y'):
-    df_fill = pd.DataFrame([[i + 1] for i in range(int(df[col_time].max()))])
+    df_fill = pd.DataFrame([[i + 1] for i in range(1,int(df[col_time].max()))])
     msd_result = []
     df_fill.columns = [col_time]
     df_fill = pd.merge(df_fill, df, on=col_time, how='left')
@@ -21,4 +21,5 @@ def cul_msd(df, col_time='t', col_x='x', col_y='y'):
     msd_df = msd_df[msd_df['msd'] > 0]
     msd_df = msd_df.reset_index(drop=True)
     msd_df['v'] = np.sqrt(msd_df['msd']) / msd_df[col_time]
+    msd_df = df[df['step']>0]
     return msd_df
