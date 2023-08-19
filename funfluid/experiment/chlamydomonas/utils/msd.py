@@ -1,5 +1,8 @@
 import pandas as pd
 from tqdm import tqdm
+import numpy as np
+
+
 
 
 def cul_msd(df, col_time='t', col_x='x', col_y='y'):
@@ -17,4 +20,5 @@ def cul_msd(df, col_time='t', col_x='x', col_y='y'):
     msd_df['msd'] = msd_df['sum'] / msd_df['cnt']
     msd_df = msd_df[msd_df['msd'] > 0]
     msd_df = msd_df.reset_inde(drop=True)
+    msd_df['v'] = np.sqrt(msd_df['msd']) / msd_df[col_time]
     return msd_df
