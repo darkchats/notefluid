@@ -1,12 +1,13 @@
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 
 
 def msd_straight_forward(arr):
     shifts = np.arange(len(arr))
     msds = np.zeros(shifts.size)
     for i, shift in enumerate(shifts):
-        diffs = arr[:-shift if shift else None] - arr[shift:]
+        diffs = arr[: -shift if shift else None] - arr[shift:]
         dist = np.square(diffs).sum(axis=1)
         msds[i] = dist.mean()
     return msds
@@ -29,7 +30,7 @@ def msd_fft(arr):
     S2 = sum([auto_corr_fft(arr[:, i]) for i in range(arr.shape[1])])
     Q = 2 * D.sum()
     S1 = np.zeros(N)
-    for m in range(N):
+    for m in tqdm(range(N)):
         Q = Q - D[m - 1] - D[N - m]
         S1[m] = Q / (N - m)
     return S1 - 2 * S2
@@ -50,7 +51,7 @@ def cul_msd(df, col_time="t", col_x="x", col_y="y"):
     # msd_df = pd.DataFrame(msd_result)
     arr = df_fill[[col_x, col_y]].values
     msd_df = df_fill[[col_time]].copy()
-    msd_df['msd'] = msd_fft(arr)
+    msd_df["msd"] = msd_fft(arr)
 
     msd_df = msd_df[msd_df["msd"] > 0]
     msd_df = msd_df.reset_index(drop=True)
